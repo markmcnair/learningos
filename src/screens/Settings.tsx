@@ -1,11 +1,11 @@
-import { useState } from "react";
+import { useEffect, useState } from "react";
 import { useNavigate } from "react-router-dom";
 import { friendlyError } from "../ai/client";
 import {
-  AI_MODELS,
-  type AiModelId,
   getKey,
   getModel,
+  modelsFor,
+  provider,
   setKey as saveKey,
   setModel as saveModel,
 } from "../ai/keys";
@@ -34,19 +34,24 @@ export function Settings() {
   const navigate = useNavigate();
   const profile = currentProfile!;
   const [apiKey, setApiKey] = useState(getKey());
-  const [model, setModelState] = useState<AiModelId>(getModel());
+  const p = provider(apiKey);
+  const [model, setModelState] = useState<string>(getModel(p));
   const [test, setTest] = useState<{ state: "idle" | "testing" | "ok" | "fail"; msg?: string }>({
     state: "idle",
   });
+
+  useEffect(() => {
+    setModelState(getModel(p));
+  }, [p]);
 
   function onKeyChange(v: string) {
     setApiKey(v);
     saveKey(v);
     setTest({ state: "idle" });
   }
-  function onModelChange(m: AiModelId) {
+  function onModelChange(m: string) {
     setModelState(m);
-    saveModel(m);
+    saveModel(p, m);
   }
   async function runTest() {
     setTest({ state: "testing" });
@@ -144,18 +149,23 @@ export function Settings() {
                 className={t.keyInput}
                 type="password"
                 value={apiKey}
-                placeholder="Anthropic API key (sk-ant-…)"
+                placeholder="Key — Anthropic (sk-ant-…) or OpenRouter (sk-or-…)"
                 autoComplete="off"
                 spellCheck={false}
                 onChange={(e) => onKeyChange(e.target.value)}
               />
+              {apiKey.trim() && (
+                <p className={s.faint} style={{ fontSize: 12, marginTop: 6 }}>
+                  Detected: {p === "openrouter" ? "OpenRouter" : "Anthropic"}
+                </p>
+              )}
 
               <div style={{ marginTop: "var(--s-4)" }}>
                 <span className={s.faint} style={{ fontSize: 13 }}>
                   Model
                 </span>
                 <div className={t.segmented} style={{ marginTop: 6 }}>
-                  {AI_MODELS.map((m) => (
+                  {modelsFor(p).map((m) => (
                     <button
                       key={m.id}
                       className={`${t.seg} ${model === m.id ? t.segActive : ""}`}

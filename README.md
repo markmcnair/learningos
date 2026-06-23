@@ -26,7 +26,7 @@ None of those words ever appear on screen. They're translated into plain languag
 ## Principles
 
 - **Local-first.** No accounts, no servers, no cloud. Multiple named profiles live on one device. Nothing leaves your machine.
-- **AI is optional.** The whole thing works with zero AI and zero API key. Add your own Anthropic key (Settings) and a tutor can check your written explanations and your end-of-session recall — judged only against the pack's fact-checked content, so it never invents facts. Off by default; the key stays on your device and is never exported.
+- **AI is optional.** The whole thing works with zero AI and zero API key. Add your own key — Anthropic (`sk-ant-…`) or OpenRouter (`sk-or-…`), auto-detected — and a tutor can check your written explanations and your end-of-session recall, judged only against the pack's fact-checked content, so it never invents facts. Off by default; the key stays on your device and is never exported.
 - **Free and open.** MIT licensed. Use it, fork it, write packs for it, teach with it.
 - **Simple on top, rigorous underneath.** Every screen answers one question and offers one next move. Every scheduling decision is grounded in cognitive science.
 

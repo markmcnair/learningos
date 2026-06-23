@@ -1,12 +1,14 @@
-// Thin wrapper over the Anthropic Messages API for the OPTIONAL AI features.
-// The SDK is dynamically imported so it never lands in the core bundle — the
-// app stays lean and fully functional with AI off.
+// Thin wrapper over the chat APIs for the OPTIONAL AI features.
 //
-// Calls go directly from the browser using the user's own key
-// (dangerouslyAllowBrowser). That is the intended local-first, bring-your-own-key
-// model: the key is the user's, on the user's device, and never proxied.
+// Two providers, auto-detected from the key prefix:
+//   - Anthropic (sk-ant-…): the official SDK, dynamically imported so it never
+//     lands in the core bundle, called direct from the browser with the user's key.
+//   - OpenRouter (sk-or-…): a plain fetch to its OpenAI-compatible endpoint
+//     (no SDK exists for it); one key, many models.
+//
+// Either way the key is the user's, on the user's device, never proxied.
 
-import { getKey, getModel } from "./keys";
+import { getKey, getModel, provider } from "./keys";
 
 export class AiError extends Error {
   kind: "no-key" | "auth" | "rate-limit" | "network" | "bad-output" | "unknown";
@@ -17,12 +19,6 @@ export class AiError extends Error {
   }
 }
 
-let sdkPromise: Promise<typeof import("@anthropic-ai/sdk").default> | null = null;
-function loadSdk() {
-  if (!sdkPromise) sdkPromise = import("@anthropic-ai/sdk").then((m) => m.default);
-  return sdkPromise;
-}
-
 interface CallOptions {
   system: string;
   user: string;
@@ -30,24 +26,31 @@ interface CallOptions {
   maxTokens?: number;
 }
 
-// Returns the model's JSON output, validated by the API against `schema`.
-export async function callJSON<T>({ system, user, schema, maxTokens = 1024 }: CallOptions): Promise<T> {
-  const apiKey = getKey();
-  if (!apiKey) throw new AiError("no-key", "No API key set.");
+export async function callJSON<T>(opts: CallOptions): Promise<T> {
+  const key = getKey();
+  if (!key) throw new AiError("no-key", "No API key set.");
+  return provider(key) === "openrouter" ? callOpenRouter<T>(key, opts) : callAnthropic<T>(key, opts);
+}
 
+// ---- Anthropic (official SDK) ------------------------------------------------
+
+let sdkPromise: Promise<typeof import("@anthropic-ai/sdk").default> | null = null;
+function loadSdk() {
+  if (!sdkPromise) sdkPromise = import("@anthropic-ai/sdk").then((m) => m.default);
+  return sdkPromise;
+}
+
+async function callAnthropic<T>(apiKey: string, { system, user, schema, maxTokens = 1024 }: CallOptions): Promise<T> {
   let Anthropic: typeof import("@anthropic-ai/sdk").default;
   try {
     Anthropic = await loadSdk();
   } catch {
     throw new AiError("network", "Couldn't load the AI module.");
   }
-
   const client = new Anthropic({ apiKey, dangerouslyAllowBrowser: true });
 
   let resp: { content: Array<{ type: string; text?: string }> };
   try {
-    // output_config.format is the structured-output surface; cast to keep this
-    // resilient across SDK minor versions.
     resp = (await (client.messages.create as unknown as (p: unknown) => Promise<typeof resp>)({
       model: getModel(),
       max_tokens: maxTokens,
@@ -56,18 +59,84 @@ export async function callJSON<T>({ system, user, schema, maxTokens = 1024 }: Ca
       output_config: { format: { type: "json_schema", schema } },
     })) as typeof resp;
   } catch (err) {
-    const status = (err as { status?: number }).status;
-    if (status === 401 || status === 403) throw new AiError("auth", "Your API key was rejected.");
-    if (status === 429) throw new AiError("rate-limit", "Rate limited — try again shortly.");
-    throw new AiError("network", "Couldn't reach the model.");
+    throw mapStatus((err as { status?: number }).status);
   }
 
   const text = resp.content.find((b) => b.type === "text")?.text ?? "";
+  return parseJson<T>(text);
+}
+
+// ---- OpenRouter (OpenAI-compatible fetch) ------------------------------------
+
+async function callOpenRouter<T>(apiKey: string, { system, user, schema, maxTokens = 1024 }: CallOptions): Promise<T> {
+  let resp: Response;
   try {
-    return JSON.parse(text) as T;
+    resp = await fetch("https://openrouter.ai/api/v1/chat/completions", {
+      method: "POST",
+      headers: {
+        Authorization: `Bearer ${apiKey}`,
+        "Content-Type": "application/json",
+        "X-Title": "LearningOS",
+      },
+      body: JSON.stringify({
+        model: getModel(),
+        max_tokens: maxTokens,
+        response_format: { type: "json_object" },
+        messages: [
+          { role: "system", content: `${system}\n\n${schemaHint(schema)}` },
+          { role: "user", content: user },
+        ],
+      }),
+    });
+  } catch {
+    throw new AiError("network", "Couldn't reach OpenRouter.");
+  }
+  if (!resp.ok) throw mapStatus(resp.status);
+
+  let data: { choices?: Array<{ message?: { content?: string } }> };
+  try {
+    data = await resp.json();
+  } catch {
+    throw new AiError("bad-output", "Unexpected response.");
+  }
+  return parseJson<T>(data.choices?.[0]?.message?.content ?? "");
+}
+
+// ---- shared helpers ----------------------------------------------------------
+
+function mapStatus(status?: number): AiError {
+  if (status === 401 || status === 403) return new AiError("auth", "Your API key was rejected.");
+  if (status === 429) return new AiError("rate-limit", "Rate limited — try again shortly.");
+  return new AiError("network", "Couldn't reach the model.");
+}
+
+// Tolerant JSON extraction — some models wrap output in ```json fences or add prose.
+function parseJson<T>(text: string): T {
+  let t = text.trim();
+  const fence = t.match(/```(?:json)?\s*([\s\S]*?)```/i);
+  if (fence) t = fence[1].trim();
+  const start = t.indexOf("{");
+  const end = t.lastIndexOf("}");
+  if (start >= 0 && end > start) t = t.slice(start, end + 1);
+  try {
+    return JSON.parse(t) as T;
   } catch {
     throw new AiError("bad-output", "The model returned an unexpected response.");
   }
+}
+
+// A plain-language description of the wanted JSON shape, for providers that
+// can't enforce a JSON schema server-side.
+function schemaHint(schema: Record<string, unknown>): string {
+  const props = (schema.properties ?? {}) as Record<string, { type?: string; enum?: string[] }>;
+  const required = (schema.required as string[] | undefined) ?? Object.keys(props);
+  const parts = required.map((k) => {
+    const p = props[k] ?? {};
+    if (p.enum) return `${k} (one of: ${p.enum.join(", ")})`;
+    if (p.type === "array") return `${k} (array of short strings)`;
+    return `${k} (${p.type ?? "string"})`;
+  });
+  return `Return ONLY a JSON object with these keys: ${parts.join("; ")}. No markdown fences, no text outside the JSON.`;
 }
 
 export function friendlyError(err: unknown): string {
