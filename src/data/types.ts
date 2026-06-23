@@ -49,7 +49,9 @@ export interface Concept {
   title: string; // "What a call option is"
   prerequisiteIds: ID[]; // edges in the prereq graph (engine signal)
   itemIds: ID[]; // the items that teach / test this concept
-  mastery: MasterySignal;
+  mastery: MasterySignal; // the surface signal, derived from bktP
+  bktP?: number; // BKT mastery probability — engine internal, never rendered
+  relearnReps?: number; // consecutive successful recalls (successive relearning)
 }
 
 // ---- Items: the atomic things a session is made of ----
@@ -66,6 +68,7 @@ export interface ItemScheduling {
   due: ISODate;
   stability?: number; // FSRS internal — never rendered
   difficulty?: number; // FSRS internal — never rendered
+  lastReview?: ISODate; // FSRS internal — used to compute elapsed time
   reps?: number;
   lapses?: number;
   learningState?: "new" | "learning" | "review" | "relearning";

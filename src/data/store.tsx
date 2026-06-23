@@ -7,7 +7,7 @@ import {
   useState,
   type ReactNode,
 } from "react";
-import { mockEngine } from "../engine/mockEngine";
+import { engine } from "../engine/realEngine";
 import {
   APP_TODAY,
   SEED_CONCEPTS,
@@ -234,7 +234,7 @@ export function AppProvider({ children }: { children: ReactNode }) {
         }
         return s;
       }
-      const planned = mockEngine.buildTodaySession({
+      const planned = engine.buildTodaySession({
         profile,
         concepts: s.concepts,
         items: s.items,
@@ -267,11 +267,13 @@ export function AppProvider({ children }: { children: ReactNode }) {
   const gradeItem = useCallback(
     (itemId: ID, grade: Grade, confidence: Confidence | null) => {
       setState((s) => {
+        const profile = s.profiles.find((p) => p.id === s.currentProfileId);
         const session = s.sessions.find(
           (x) => x.profileId === s.currentProfileId && x.date === APP_TODAY,
         );
-        if (!session) return s;
+        if (!profile || !session) return s;
         const item = s.items.find((i) => i.id === itemId);
+        const concept = item ? s.concepts.find((c) => c.id === item.conceptId) : undefined;
         const review: Review = {
           id: crypto.randomUUID(),
           sessionId: session.id,
@@ -280,17 +282,24 @@ export function AppProvider({ children }: { children: ReactNode }) {
           confidence,
           reviewedAt: new Date().toISOString(),
         };
-        const concepts = item
-          ? s.concepts.map((c) =>
-              c.id === item.conceptId
-                ? { ...c, mastery: mockEngine.gradeToMastery(c.mastery, grade) }
-                : c,
-            )
-          : s.concepts;
+        let items = s.items;
+        let concepts = s.concepts;
+        if (item && concept) {
+          const updated = engine.applyReview({
+            item,
+            concept,
+            grade,
+            date: APP_TODAY,
+            retention: engine.retentionFor(profile.intensity),
+          });
+          items = s.items.map((i) => (i.id === item.id ? updated.item : i));
+          concepts = s.concepts.map((c) => (c.id === concept.id ? updated.concept : c));
+        }
         return {
           ...s,
-          reviews: [...s.reviews, review],
+          items,
           concepts,
+          reviews: [...s.reviews, review],
           sessions: s.sessions.map((x) =>
             x.id === session.id ? { ...x, currentIndex: x.currentIndex + 1 } : x,
           ),
@@ -310,7 +319,7 @@ export function AppProvider({ children }: { children: ReactNode }) {
       const sessionReviews = s.reviews.filter((r) => r.sessionId === session.id);
       const positiveCount = sessionReviews.filter((r) => PAID_ATTENTION.includes(r.grade)).length;
       const alreadyCountedToday = profile.lastCompletedDate === APP_TODAY;
-      const summary = mockEngine.summarizeSession({
+      const summary = engine.summarizeSession({
         itemsDone: session.itemIds.length,
         positiveCount,
         prevStreak: profile.streakDays,

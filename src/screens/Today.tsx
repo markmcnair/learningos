@@ -2,7 +2,7 @@ import { Link } from "react-router-dom";
 import { Avatar, ButtonLink, Card, Icon, Streak } from "../components/ui";
 import { APP_TODAY } from "../data/mockData";
 import { useApp } from "../data/store";
-import { mockEngine } from "../engine/mockEngine";
+import { engine } from "../engine/realEngine";
 import s from "./screens.module.css";
 
 function greeting(name: string): string {
@@ -15,7 +15,7 @@ export function Today() {
   const { currentProfile, todaySession, concepts, items } = useApp();
   const profile = currentProfile!;
 
-  const preview = mockEngine.buildTodaySession({
+  const preview = engine.buildTodaySession({
     profile,
     concepts,
     items,

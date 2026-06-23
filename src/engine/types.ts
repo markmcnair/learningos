@@ -2,18 +2,17 @@ import type {
   Concept,
   Grade,
   ID,
+  Intensity,
   ISODate,
   Item,
   MasterySignal,
   Profile,
-  Review,
   SessionSummary,
 } from "../data/types";
 
-// The seam. Everything below is what the real learning engine implements.
-// Today a deterministic mock fills these in; tomorrow FSRS-6 (scheduling),
-// BKT (mastery), and the prerequisite graph (sequencing) take over — without
-// the UI knowing the difference.
+// The seam. The store talks only to this interface, so the scheduling/mastery
+// implementation behind it (FSRS-6 + BKT + the prerequisite graph) can change
+// without the UI knowing.
 
 export interface BuildSessionInput {
   profile: Profile;
@@ -23,8 +22,16 @@ export interface BuildSessionInput {
 }
 
 export interface PlannedSession {
-  itemIds: ID[]; // the ordered path for today (interleaved, finite)
+  itemIds: ID[]; // the ordered, interleaved, finite path for today
   estMinutes: number; // 10–20
+}
+
+export interface ApplyReviewInput {
+  item: Item;
+  concept: Concept;
+  grade: Grade;
+  date: ISODate;
+  retention: number; // desired retention target for scheduling
 }
 
 export interface SummarizeInput {
@@ -35,12 +42,14 @@ export interface SummarizeInput {
 }
 
 export interface LearningEngine {
+  // Desired-retention target behind the plain-language intensity dial.
+  retentionFor(intensity: Intensity): number;
   // Which items, in which order, for today's finite session.
   buildTodaySession(input: BuildSessionInput): PlannedSession;
-  // How a single self-rating nudges a concept's surface mastery signal.
-  gradeToMastery(current: MasterySignal, grade: Grade): MasterySignal;
-  // The plain-language recap shown on the "done" screen.
+  // Update one item's schedule (FSRS) and its concept's mastery (BKT).
+  applyReview(input: ApplyReviewInput): { item: Item; concept: Concept };
+  // The surface signal for a concept, from its mastery probability.
+  deriveSignal(concept: Concept): MasterySignal;
+  // The plain-language recap on the "done" screen.
   summarizeSession(input: SummarizeInput): SessionSummary;
 }
-
-export type { Review };
