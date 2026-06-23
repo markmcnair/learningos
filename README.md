@@ -26,7 +26,7 @@ None of those words ever appear on screen. They're translated into plain languag
 ## Principles
 
 - **Local-first.** No accounts, no servers, no cloud. Multiple named profiles live on one device. Nothing leaves your machine.
-- **AI is optional.** The whole thing works with zero AI and zero API key. Add your own key and it can generate fresh practice and grade your explanations — with every number checked by a real calculator, never the model. Off by default.
+- **AI is optional.** The whole thing works with zero AI and zero API key. Add your own Anthropic key (Settings) and a tutor can check your written explanations and your end-of-session recall — judged only against the pack's fact-checked content, so it never invents facts. Off by default; the key stays on your device and is never exported.
 - **Free and open.** MIT licensed. Use it, fork it, write packs for it, teach with it.
 - **Simple on top, rigorous underneath.** Every screen answers one question and offers one next move. Every scheduling decision is grounded in cognitive science.
 
@@ -40,7 +40,9 @@ Built in the open, in phases:
 | 2 | UI design prompt pack | done — see [`docs/DESIGN_HANDOFF.md`](docs/DESIGN_HANDOFF.md) |
 | 3 | Build the app surface (all 7 screens, local-first) + deploy | done — [live](https://learningos-orpin.vercel.app) |
 | 4 | Real learning engine — FSRS-6 scheduling + BKT mastery | done |
-| 5 | Grow packs, prerequisite-gated unlocking, optional AI generation | next |
+| 5 | Content packs — full trading spine + business-for-kids, fact-checked | done |
+| 6 | Optional AI tutor — explanation grading + brain-dump review (BYO key) | done |
+| 7 | Prerequisite-gated unlocking, per-user FSRS tuning, AI question generation | next |
 
 The scheduling core is real: [`src/engine/fsrs.ts`](src/engine/fsrs.ts) implements the FSRS-6 DSR model (forgetting curve, stability/difficulty updates, retention-targeted intervals) and [`src/engine/bkt.ts`](src/engine/bkt.ts) tracks per-concept mastery, both covered by unit tests (`npm test`). The plain-language intensity dial maps to a desired-retention target. Still ahead: prerequisite-gated unlocking of new concepts, per-user FSRS optimization once there's enough review history, and optional AI item generation/grading under the guardrails in [`docs/ENGINE_SPEC.md`](docs/ENGINE_SPEC.md).
 

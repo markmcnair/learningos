@@ -196,3 +196,98 @@
 .doneCheck {
   color: var(--positive);
 }
+
+/* optional AI: explain-it-back + brain-dump review */
+.aiBox {
+  margin-top: var(--s-5);
+  border-top: 1px solid var(--border);
+  padding-top: var(--s-5);
+}
+.aiPrompt {
+  font-size: 14px;
+  color: var(--text-muted);
+}
+.miniArea {
+  width: 100%;
+  min-height: 90px;
+  margin-top: var(--s-3);
+  background: var(--surface);
+  border: 1px solid var(--border-strong);
+  border-radius: var(--r-md);
+  padding: var(--s-3) var(--s-4);
+  font-size: 15px;
+  line-height: 1.5;
+  resize: vertical;
+}
+.miniArea:focus {
+  outline: none;
+  border-color: var(--accent);
+}
+.feedback {
+  margin-top: var(--s-3);
+  border-radius: var(--r-md);
+  padding: var(--s-4);
+  font-size: 15px;
+  line-height: 1.5;
+}
+.fbOn {
+  background: var(--positive-soft);
+  color: var(--positive);
+}
+.fbAmber {
+  background: var(--signal-getting-bg);
+  color: var(--signal-getting-text);
+}
+.fbLabel {
+  display: block;
+  font-weight: 500;
+  text-transform: capitalize;
+  margin-bottom: 4px;
+}
+.aiHint {
+  font-size: 13px;
+  color: var(--text-faint);
+  margin-top: var(--s-3);
+}
+
+.reviewPanel {
+  margin-top: var(--s-4);
+  display: flex;
+  flex-direction: column;
+  gap: var(--s-4);
+  text-align: left;
+}
+.gLabel {
+  font-size: 13px;
+  font-weight: 500;
+  color: var(--text-faint);
+  text-transform: uppercase;
+  letter-spacing: 0.04em;
+  margin-bottom: 6px;
+}
+.reviewList {
+  list-style: none;
+  display: flex;
+  flex-direction: column;
+  gap: 6px;
+}
+.reviewList li {
+  font-size: 15px;
+  line-height: 1.5;
+  padding-left: var(--s-4);
+  position: relative;
+}
+.reviewList li::before {
+  content: "";
+  position: absolute;
+  left: 0;
+  top: 9px;
+  width: 6px;
+  height: 6px;
+  border-radius: 50%;
+  background: var(--accent);
+}
+.nudge {
+  font-size: 15px;
+  color: var(--text-muted);
+}

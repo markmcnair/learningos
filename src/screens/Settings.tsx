@@ -1,5 +1,15 @@
 import { useState } from "react";
 import { useNavigate } from "react-router-dom";
+import { friendlyError } from "../ai/client";
+import {
+  AI_MODELS,
+  type AiModelId,
+  getKey,
+  getModel,
+  setKey as saveKey,
+  setModel as saveModel,
+} from "../ai/keys";
+import { testConnection } from "../ai/tutor";
 import { Avatar, Button, Card } from "../components/ui";
 import { useApp, type ThemePref } from "../data/store";
 import type { Intensity } from "../data/types";
@@ -23,7 +33,30 @@ export function Settings() {
     useApp();
   const navigate = useNavigate();
   const profile = currentProfile!;
-  const [key, setKey] = useState("");
+  const [apiKey, setApiKey] = useState(getKey());
+  const [model, setModelState] = useState<AiModelId>(getModel());
+  const [test, setTest] = useState<{ state: "idle" | "testing" | "ok" | "fail"; msg?: string }>({
+    state: "idle",
+  });
+
+  function onKeyChange(v: string) {
+    setApiKey(v);
+    saveKey(v);
+    setTest({ state: "idle" });
+  }
+  function onModelChange(m: AiModelId) {
+    setModelState(m);
+    saveModel(m);
+  }
+  async function runTest() {
+    setTest({ state: "testing" });
+    try {
+      const ok = await testConnection();
+      setTest(ok ? { state: "ok" } : { state: "fail", msg: "Unexpected response." });
+    } catch (e) {
+      setTest({ state: "fail", msg: friendlyError(e) });
+    }
+  }
 
   function exportBackup() {
     const blob = new Blob([exportData()], { type: "application/json" });
@@ -89,8 +122,9 @@ export function Settings() {
             <div>
               <h3 style={{ fontSize: 16 }}>Smarter practice with AI</h3>
               <p className={s.muted} style={{ fontSize: 14, marginTop: 4 }}>
-                Optional, and off by default. Add your own key and the engine can write fresh
-                practice and check your explanations. Your key stays on this device.
+                Optional, and off by default. With your own key, a tutor can check your written
+                explanations and your end-of-session recall. Your key stays on this device and is
+                never included in an export.
               </p>
             </div>
             <button
@@ -103,14 +137,61 @@ export function Settings() {
               <span className={t.knob} />
             </button>
           </div>
+
           {profile.aiEnabled && (
-            <input
-              className={t.keyInput}
-              type="password"
-              value={key}
-              placeholder="sk-… (stays on this device)"
-              onChange={(e) => setKey(e.target.value)}
-            />
+            <div style={{ marginTop: "var(--s-4)" }}>
+              <input
+                className={t.keyInput}
+                type="password"
+                value={apiKey}
+                placeholder="Anthropic API key (sk-ant-…)"
+                autoComplete="off"
+                spellCheck={false}
+                onChange={(e) => onKeyChange(e.target.value)}
+              />
+
+              <div style={{ marginTop: "var(--s-4)" }}>
+                <span className={s.faint} style={{ fontSize: 13 }}>
+                  Model
+                </span>
+                <div className={t.segmented} style={{ marginTop: 6 }}>
+                  {AI_MODELS.map((m) => (
+                    <button
+                      key={m.id}
+                      className={`${t.seg} ${model === m.id ? t.segActive : ""}`}
+                      onClick={() => onModelChange(m.id)}
+                    >
+                      {m.label}
+                    </button>
+                  ))}
+                </div>
+              </div>
+
+              <div className={t.dataRow} style={{ marginTop: "var(--s-4)", alignItems: "center" }}>
+                <Button
+                  variant="secondary"
+                  size="sm"
+                  onClick={runTest}
+                  disabled={!apiKey || test.state === "testing"}
+                >
+                  {test.state === "testing" ? "Testing…" : "Test connection"}
+                </Button>
+                {test.state === "ok" && (
+                  <span style={{ color: "var(--positive)", fontSize: 14 }}>Connected ✓</span>
+                )}
+                {test.state === "fail" && (
+                  <span className={t.danger} style={{ fontSize: 14 }}>
+                    {test.msg ?? "Failed"}
+                  </span>
+                )}
+              </div>
+
+              <p className={s.faint} style={{ fontSize: 12, marginTop: "var(--s-3)" }}>
+                Calls go straight from this device to Anthropic with your key. Every number in your
+                packs stays human-checked — the tutor only judges your words against the lesson, it
+                never invents facts.
+              </p>
+            </div>
           )}
         </Card>
 
