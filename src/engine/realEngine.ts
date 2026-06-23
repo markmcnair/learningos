@@ -63,18 +63,18 @@ export const engine: LearningEngine = {
     const masteryById = new Map(concepts.map((c) => [c.id, c.mastery]));
     const inScope = items.filter((i) => activeConceptIds.has(i.conceptId));
 
-    // Items FSRS says are due (or have never been scheduled = fresh review).
+    // Items FSRS says are due — the spaced-repetition heartbeat.
     const due = inScope.filter((i) => i.scheduling?.due && i.scheduling.due <= date);
 
-    // Gently introduce teaching items from concepts not yet solid.
-    const toLearn = inScope.filter(
-      (i) =>
-        !i.scheduling?.due &&
-        masteryById.get(i.conceptId) !== "solid" &&
-        (i.type === "concept-explanation" || i.type === "worked-example" || i.type === "cloze"),
-    );
+    // Introduce un-scheduled items from concepts not yet solid, teaching first
+    // so a new idea is taught before it's tested.
+    const typeRank = (t: Item["type"]) =>
+      t === "concept-explanation" || t === "worked-example" ? 0 : t === "cloze" ? 1 : 2;
+    const introduce = inScope
+      .filter((i) => !i.scheduling?.due && masteryById.get(i.conceptId) !== "solid")
+      .sort((a, b) => typeRank(a.type) - typeRank(b.type));
 
-    const planned = interleaveByConcept([...due, ...toLearn.slice(0, 4)]).slice(0, MAX_ITEMS);
+    const planned = interleaveByConcept([...due, ...introduce]).slice(0, MAX_ITEMS);
     const estMinutes = Math.min(20, Math.max(10, Math.round(planned.length * 1.4)));
     return { itemIds: planned.map((i) => i.id), estMinutes };
   },

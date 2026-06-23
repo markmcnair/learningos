@@ -46,7 +46,7 @@ interface PersistState {
 }
 
 const STORAGE_KEY = "learningos:v1";
-const STATE_VERSION = 1;
+const STATE_VERSION = 2; // bumped for the expanded, fact-checked content packs
 
 function seed(): PersistState {
   return {
