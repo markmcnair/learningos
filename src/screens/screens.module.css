@@ -1,0 +1,129 @@
+/* shared screen scaffolding */
+
+.header {
+  display: flex;
+  align-items: flex-start;
+  justify-content: space-between;
+  gap: var(--s-4);
+  margin-bottom: var(--s-6);
+}
+
+.greeting {
+  font-family: var(--font-display);
+  font-size: 28px;
+  font-weight: 500;
+  line-height: 1.1;
+  letter-spacing: -0.01em;
+}
+
+.subtle {
+  color: var(--text-muted);
+  font-size: 15px;
+  margin-top: 6px;
+}
+
+.stack {
+  display: flex;
+  flex-direction: column;
+  gap: var(--s-5);
+}
+.stackTight {
+  display: flex;
+  flex-direction: column;
+  gap: var(--s-3);
+}
+
+.rowBetween {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: var(--s-3);
+}
+
+.sectionLabel {
+  font-size: 13px;
+  font-weight: 500;
+  letter-spacing: 0.04em;
+  text-transform: uppercase;
+  color: var(--text-faint);
+  margin-bottom: var(--s-3);
+}
+
+.avatarBtn {
+  background: none;
+  border: none;
+  padding: 0;
+  cursor: pointer;
+  border-radius: 50%;
+}
+
+.muted {
+  color: var(--text-muted);
+}
+.faint {
+  color: var(--text-faint);
+}
+
+.centerScreen {
+  min-height: 100vh;
+  display: flex;
+  flex-direction: column;
+  justify-content: center;
+  max-width: var(--content-max);
+  margin: 0 auto;
+  padding: var(--s-7) var(--s-5) calc(var(--s-7) + env(safe-area-inset-bottom));
+}
+
+.brandMark {
+  display: flex;
+  align-items: center;
+  gap: var(--s-3);
+  margin-bottom: var(--s-7);
+}
+.brandName {
+  font-family: var(--font-display);
+  font-size: 20px;
+  font-weight: 500;
+}
+
+/* a quiet segmented mastery bar */
+.segbar {
+  display: flex;
+  height: 10px;
+  border-radius: var(--r-pill);
+  overflow: hidden;
+  background: var(--surface-sunk);
+  gap: 2px;
+}
+.segSolid {
+  background: var(--positive);
+}
+.segGetting {
+  background: var(--signal-getting-text);
+}
+.segNew {
+  background: var(--border-strong);
+}
+
+/* compare bars for calibration */
+.compareRow {
+  display: grid;
+  grid-template-columns: 1fr;
+  gap: 6px;
+  padding: var(--s-3) 0;
+  border-bottom: 1px solid var(--border);
+}
+.compareTrack {
+  height: 8px;
+  border-radius: var(--r-pill);
+  background: var(--surface-sunk);
+  overflow: hidden;
+}
+.compareFillThink {
+  height: 100%;
+  background: var(--text-faint);
+}
+.compareFillKnow {
+  height: 100%;
+  background: var(--accent);
+}

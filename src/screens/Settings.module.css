@@ -1,0 +1,118 @@
+.group {
+  display: flex;
+  flex-direction: column;
+  gap: var(--s-3);
+}
+
+.profileCard {
+  display: flex;
+  align-items: center;
+  gap: var(--s-4);
+}
+.profileGrow {
+  flex: 1;
+}
+
+.segmented {
+  display: flex;
+  gap: 4px;
+  background: var(--surface-sunk);
+  border-radius: var(--r-md);
+  padding: 4px;
+}
+.seg {
+  flex: 1;
+  border: none;
+  background: transparent;
+  border-radius: calc(var(--r-md) - 4px);
+  padding: 10px 8px;
+  font-size: 14px;
+  font-weight: 500;
+  color: var(--text-muted);
+  cursor: pointer;
+  transition: background var(--t-fast) var(--ease), color var(--t-fast) var(--ease);
+}
+.segActive {
+  background: var(--surface);
+  color: var(--text);
+  box-shadow: var(--shadow-rise);
+}
+
+.helper {
+  font-size: 14px;
+  color: var(--text-muted);
+  margin-top: var(--s-2);
+}
+
+.toggleRow {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: var(--s-4);
+}
+.toggle {
+  width: 48px;
+  height: 28px;
+  border-radius: var(--r-pill);
+  background: var(--border-strong);
+  border: none;
+  position: relative;
+  cursor: pointer;
+  flex-shrink: 0;
+  transition: background var(--t-fast) var(--ease);
+}
+.toggleOn {
+  background: var(--accent);
+}
+.knob {
+  position: absolute;
+  top: 3px;
+  left: 3px;
+  width: 22px;
+  height: 22px;
+  border-radius: 50%;
+  background: #fff;
+  transition: transform var(--t-fast) var(--ease);
+}
+.toggleOn .knob {
+  transform: translateX(20px);
+}
+
+.keyInput {
+  width: 100%;
+  margin-top: var(--s-3);
+  background: var(--surface);
+  border: 1px solid var(--border-strong);
+  border-radius: var(--r-md);
+  padding: 12px 14px;
+  font-size: 15px;
+  font-family: var(--font-mono, monospace);
+}
+.keyInput:focus {
+  outline: none;
+  border-color: var(--accent);
+}
+
+.dataRow {
+  display: flex;
+  gap: var(--s-3);
+  flex-wrap: wrap;
+}
+
+.danger {
+  color: var(--gentle);
+}
+
+.how {
+  margin-top: var(--s-5);
+  font-size: 14px;
+  color: var(--text-faint);
+}
+.how summary {
+  cursor: pointer;
+  font-weight: 500;
+}
+.how p {
+  margin-top: var(--s-3);
+  line-height: 1.6;
+}

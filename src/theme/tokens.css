@@ -1,0 +1,145 @@
+/* LearningOS design tokens.
+   Anchored on Frost / Snow / Ember / Ink, expanded into a full themeable set.
+   Light is the default; dark applies via [data-theme="dark"] or the OS setting
+   when the user hasn't pinned a theme. */
+
+:root {
+  /* brand anchors */
+  --frost: #f7f8fa;
+  --snow: #ffffff;
+  --ink: #1c2530;
+  --ember: #e8743b;
+
+  /* surfaces */
+  --bg: var(--frost);
+  --surface: var(--snow);
+  --surface-sunk: #f1f3f6;
+
+  /* text */
+  --text: var(--ink);
+  --text-muted: #5b6675;
+  --text-faint: #8a93a0;
+
+  /* the single warm accent — the one action worth taking */
+  --accent: var(--ember);
+  --accent-hover: #d5612b;
+  --accent-soft: #fbeee7;
+  --on-accent: #ffffff;
+
+  /* lines */
+  --border: #e6e8ec;
+  --border-strong: #d7dbe1;
+
+  /* the three mastery signals: new / getting it / solid */
+  --signal-new-bg: #eef0f3;
+  --signal-new-text: #5b6675;
+  --signal-getting-bg: #fbeede;
+  --signal-getting-text: #b5662c;
+  --signal-solid-bg: #e2f1ea;
+  --signal-solid-text: #2c7a58;
+
+  /* feedback states */
+  --positive: #2c7a58;
+  --positive-soft: #e2f1ea;
+  --gentle: #b5662c;
+
+  /* one soft shadow, used only on the focal card */
+  --shadow-focal: 0 8px 30px rgba(28, 37, 48, 0.1);
+  --shadow-rise: 0 2px 8px rgba(28, 37, 48, 0.06);
+
+  /* radii */
+  --r-sm: 8px;
+  --r-md: 14px;
+  --r-lg: 20px;
+  --r-pill: 999px;
+
+  /* spacing — 4px base, 8px rhythm */
+  --s-1: 4px;
+  --s-2: 8px;
+  --s-3: 12px;
+  --s-4: 16px;
+  --s-5: 24px;
+  --s-6: 32px;
+  --s-7: 48px;
+  --s-8: 64px;
+
+  /* type */
+  --font-display: "Fraunces", Georgia, "Times New Roman", serif;
+  --font-ui: "Inter", system-ui, -apple-system, "Segoe UI", sans-serif;
+
+  /* motion — one thing moves at a time, gently */
+  --t-fast: 120ms;
+  --t-mid: 200ms;
+  --t-slow: 320ms;
+  --ease: cubic-bezier(0.2, 0.6, 0.2, 1);
+
+  /* layout */
+  --content-max: 560px;
+}
+
+:root[data-theme="dark"] {
+  --frost: #14181f;
+  --snow: #1c2530;
+  --ink: #f2f4f7;
+
+  --bg: #14181f;
+  --surface: #1c2530;
+  --surface-sunk: #222c39;
+
+  --text: #f2f4f7;
+  --text-muted: #a9b2be;
+  --text-faint: #7c8694;
+
+  --accent: #f0884f;
+  --accent-hover: #f3996a;
+  --accent-soft: #2f2620;
+  --on-accent: #14181f;
+
+  --border: #2a3441;
+  --border-strong: #394454;
+
+  --signal-new-bg: #252f3c;
+  --signal-new-text: #a9b2be;
+  --signal-getting-bg: #36291d;
+  --signal-getting-text: #e0a062;
+  --signal-solid-bg: #1d3a30;
+  --signal-solid-text: #6cc09a;
+
+  --positive: #6cc09a;
+  --positive-soft: #1d3a30;
+  --gentle: #e0a062;
+
+  --shadow-focal: 0 10px 34px rgba(0, 0, 0, 0.45);
+  --shadow-rise: 0 2px 10px rgba(0, 0, 0, 0.3);
+}
+
+@media (prefers-color-scheme: dark) {
+  :root:not([data-theme="light"]):not([data-theme="dark"]) {
+    --frost: #14181f;
+    --snow: #1c2530;
+    --ink: #f2f4f7;
+    --bg: #14181f;
+    --surface: #1c2530;
+    --surface-sunk: #222c39;
+    --text: #f2f4f7;
+    --text-muted: #a9b2be;
+    --text-faint: #7c8694;
+    --accent: #f0884f;
+    --accent-hover: #f3996a;
+    --accent-soft: #2f2620;
+    --on-accent: #14181f;
+    --border: #2a3441;
+    --border-strong: #394454;
+    --signal-new-bg: #252f3c;
+    --signal-new-text: #a9b2be;
+    --signal-getting-bg: #36291d;
+    --signal-getting-text: #e0a062;
+    --signal-solid-bg: #1d3a30;
+    --signal-solid-text: #6cc09a;
+    --positive: #6cc09a;
+    --positive-soft: #1d3a30;
+    --gentle: #e0a062;
+    --shadow-focal: 0 10px 34px rgba(0, 0, 0, 0.45);
+    --shadow-rise: 0 2px 10px rgba(0, 0, 0, 0.3);
+  }
+}

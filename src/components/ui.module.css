@@ -1,0 +1,152 @@
+/* shared building blocks */
+
+.btn {
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  gap: var(--s-2);
+  border: 1px solid transparent;
+  border-radius: var(--r-pill);
+  font-weight: 500;
+  line-height: 1;
+  text-decoration: none;
+  transition: transform var(--t-fast) var(--ease), background var(--t-fast) var(--ease),
+    border-color var(--t-fast) var(--ease), opacity var(--t-fast) var(--ease);
+  user-select: none;
+}
+.btn:active {
+  transform: translateY(1px);
+}
+.btn:disabled {
+  opacity: 0.5;
+  cursor: default;
+}
+
+.lg {
+  padding: 18px 28px;
+  font-size: 17px;
+}
+.md {
+  padding: 12px 20px;
+  font-size: 15px;
+}
+.sm {
+  padding: 8px 14px;
+  font-size: 14px;
+}
+
+.primary {
+  background: var(--accent);
+  color: var(--on-accent);
+}
+.primary:hover:not(:disabled) {
+  background: var(--accent-hover);
+}
+
+.secondary {
+  background: var(--surface);
+  color: var(--text);
+  border-color: var(--border-strong);
+}
+.secondary:hover:not(:disabled) {
+  border-color: var(--text-faint);
+}
+
+.ghost {
+  background: transparent;
+  color: var(--text-muted);
+}
+.ghost:hover:not(:disabled) {
+  color: var(--text);
+  background: var(--surface-sunk);
+}
+
+.block {
+  width: 100%;
+}
+
+/* card */
+.card {
+  background: var(--surface);
+  border: 1px solid var(--border);
+  border-radius: var(--r-lg);
+  padding: var(--s-6);
+}
+.cardFocal {
+  box-shadow: var(--shadow-focal);
+  border-color: transparent;
+}
+
+/* mastery pill */
+.pill {
+  display: inline-flex;
+  align-items: center;
+  gap: 6px;
+  padding: 5px 11px;
+  border-radius: var(--r-pill);
+  font-size: 13px;
+  font-weight: 500;
+  white-space: nowrap;
+}
+.pillDot {
+  width: 7px;
+  height: 7px;
+  border-radius: 50%;
+  background: currentColor;
+}
+.signalNew {
+  background: var(--signal-new-bg);
+  color: var(--signal-new-text);
+}
+.signalGetting {
+  background: var(--signal-getting-bg);
+  color: var(--signal-getting-text);
+}
+.signalSolid {
+  background: var(--signal-solid-bg);
+  color: var(--signal-solid-text);
+}
+
+/* progress dots — quiet position-in-session */
+.dots {
+  display: flex;
+  gap: 6px;
+  align-items: center;
+}
+.dot {
+  height: 6px;
+  border-radius: var(--r-pill);
+  background: var(--border-strong);
+  transition: background var(--t-mid) var(--ease), width var(--t-mid) var(--ease);
+}
+.dotDone {
+  background: var(--accent);
+}
+.dotCurrent {
+  background: var(--accent);
+}
+
+/* avatar */
+.avatar {
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  border-radius: 50%;
+  font-family: var(--font-display);
+  font-weight: 500;
+  color: #fff;
+  flex-shrink: 0;
+}
+
+/* streak chip */
+.streak {
+  display: inline-flex;
+  align-items: center;
+  gap: 6px;
+  color: var(--text-muted);
+  font-size: 14px;
+  font-weight: 500;
+}
+.streak svg {
+  color: var(--accent);
+}

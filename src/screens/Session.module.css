@@ -1,0 +1,198 @@
+.player {
+  min-height: 100vh;
+  display: flex;
+  flex-direction: column;
+  max-width: var(--content-max);
+  margin: 0 auto;
+  padding: var(--s-4) var(--s-5) calc(var(--s-6) + env(safe-area-inset-bottom));
+}
+
+.topbar {
+  display: flex;
+  align-items: center;
+  gap: var(--s-4);
+  padding: var(--s-2) 0 var(--s-5);
+}
+.closeBtn {
+  background: none;
+  border: none;
+  color: var(--text-faint);
+  cursor: pointer;
+  display: inline-flex;
+  padding: 4px;
+  border-radius: 50%;
+}
+.closeBtn:hover {
+  color: var(--text-muted);
+}
+.dotsWrap {
+  flex: 1;
+}
+
+.body {
+  flex: 1;
+  display: flex;
+  flex-direction: column;
+  justify-content: center;
+}
+
+.kind {
+  font-size: 13px;
+  font-weight: 500;
+  letter-spacing: 0.04em;
+  text-transform: uppercase;
+  color: var(--text-faint);
+  margin-bottom: var(--s-4);
+}
+
+.prompt {
+  font-family: var(--font-display);
+  font-size: 25px;
+  font-weight: 500;
+  line-height: 1.25;
+  letter-spacing: -0.01em;
+}
+
+.passage {
+  margin-top: var(--s-4);
+  color: var(--text-muted);
+  font-size: 17px;
+  line-height: 1.65;
+}
+
+.reveal {
+  margin-top: var(--s-5);
+  background: var(--surface-sunk);
+  border-radius: var(--r-md);
+  padding: var(--s-5);
+}
+.revealLabel {
+  font-size: 13px;
+  font-weight: 500;
+  color: var(--text-faint);
+  margin-bottom: 6px;
+}
+.revealText {
+  font-size: 17px;
+  line-height: 1.55;
+}
+.mythLabel {
+  color: var(--gentle);
+}
+
+.controls {
+  margin-top: var(--s-6);
+  display: flex;
+  flex-direction: column;
+  gap: var(--s-4);
+}
+
+.askLabel {
+  font-size: 14px;
+  color: var(--text-muted);
+  text-align: center;
+}
+
+.chips {
+  display: flex;
+  gap: var(--s-2);
+  justify-content: center;
+  flex-wrap: wrap;
+}
+.chip {
+  background: var(--surface);
+  border: 1px solid var(--border-strong);
+  border-radius: var(--r-pill);
+  padding: 10px 18px;
+  font-size: 14px;
+  font-weight: 500;
+  cursor: pointer;
+  color: var(--text-muted);
+  transition: border-color var(--t-fast) var(--ease), color var(--t-fast) var(--ease);
+}
+.chip:hover {
+  border-color: var(--text-faint);
+  color: var(--text);
+}
+
+.grades {
+  display: grid;
+  grid-template-columns: repeat(4, 1fr);
+  gap: var(--s-2);
+}
+@media (max-width: 440px) {
+  .grades {
+    grid-template-columns: repeat(2, 1fr);
+  }
+}
+.grade {
+  border: 1px solid var(--border-strong);
+  background: var(--surface);
+  border-radius: var(--r-md);
+  padding: 14px 8px;
+  font-size: 14px;
+  font-weight: 500;
+  cursor: pointer;
+  color: var(--text);
+  transition: border-color var(--t-fast) var(--ease), background var(--t-fast) var(--ease),
+    transform var(--t-fast) var(--ease);
+}
+.grade:hover {
+  border-color: var(--text-faint);
+}
+.grade:active {
+  transform: translateY(1px);
+}
+.gradeMissed:hover {
+  border-color: var(--gentle);
+  color: var(--gentle);
+}
+.gradeGood:hover {
+  border-color: var(--positive);
+  color: var(--positive);
+}
+
+.ghostCenter {
+  text-align: center;
+}
+.ghostLink {
+  background: none;
+  border: none;
+  color: var(--text-faint);
+  font-size: 14px;
+  cursor: pointer;
+  text-decoration: underline;
+  text-underline-offset: 3px;
+}
+.ghostLink:hover {
+  color: var(--text-muted);
+}
+
+/* reflection + done */
+.reflectArea {
+  width: 100%;
+  min-height: 200px;
+  resize: vertical;
+  background: var(--surface);
+  border: 1px solid var(--border);
+  border-radius: var(--r-lg);
+  padding: var(--s-5);
+  font-size: 17px;
+  line-height: 1.6;
+  margin-top: var(--s-5);
+}
+.reflectArea:focus {
+  outline: none;
+  border-color: var(--accent);
+}
+
+.doneWrap {
+  text-align: center;
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  gap: var(--s-4);
+}
+.doneCheck {
+  color: var(--positive);
+}
