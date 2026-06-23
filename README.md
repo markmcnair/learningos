@@ -39,10 +39,10 @@ Built in the open, in phases:
 | 1 | Vision + architecture | done |
 | 2 | UI design prompt pack | done — see [`docs/DESIGN_HANDOFF.md`](docs/DESIGN_HANDOFF.md) |
 | 3 | Build the app surface (all 7 screens, local-first) + deploy | done — [live](https://learningos-orpin.vercel.app) |
-| 4 | Swap the mock data for the real engine (FSRS-6, BKT, graph) | next |
-| 5 | Grow the packs (Trading Foundations, Business for Kids), polish | planned |
+| 4 | Real learning engine — FSRS-6 scheduling + BKT mastery | done |
+| 5 | Grow packs, prerequisite-gated unlocking, optional AI generation | next |
 
-Today the app runs on a deliberately simple stand-in scheduler so the whole daily loop works end to end. Phase 4 replaces that one module — `src/data/mockData.ts` + `src/engine/` — with the real engine, behind the same interface, so no screen changes. The engine's design and locked defaults live in [`docs/ENGINE_SPEC.md`](docs/ENGINE_SPEC.md).
+The scheduling core is real: [`src/engine/fsrs.ts`](src/engine/fsrs.ts) implements the FSRS-6 DSR model (forgetting curve, stability/difficulty updates, retention-targeted intervals) and [`src/engine/bkt.ts`](src/engine/bkt.ts) tracks per-concept mastery, both covered by unit tests (`npm test`). The plain-language intensity dial maps to a desired-retention target. Still ahead: prerequisite-gated unlocking of new concepts, per-user FSRS optimization once there's enough review history, and optional AI item generation/grading under the guardrails in [`docs/ENGINE_SPEC.md`](docs/ENGINE_SPEC.md).
 
 ## Run it locally
 
