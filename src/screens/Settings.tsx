@@ -10,7 +10,7 @@ import {
   setModel as saveModel,
 } from "../ai/keys";
 import { testConnection } from "../ai/tutor";
-import { Avatar, Button, Card } from "../components/ui";
+import { Avatar, Button, Card, Icon } from "../components/ui";
 import { useApp, type ThemePref } from "../data/store";
 import type { Intensity } from "../data/types";
 import s from "./screens.module.css";
@@ -105,6 +105,33 @@ export function Settings() {
             </Button>
           </div>
         </Card>
+
+        <button
+          onClick={() => navigate("/system")}
+          style={{
+            display: "block",
+            width: "100%",
+            background: "none",
+            border: "none",
+            padding: 0,
+            cursor: "pointer",
+            textAlign: "left",
+          }}
+        >
+          <Card>
+            <div className={t.profileCard}>
+              <div className={t.profileGrow}>
+                <div style={{ fontFamily: "var(--font-display)", fontSize: 17, fontWeight: 500 }}>
+                  How LearningOS works
+                </div>
+                <div className={s.faint} style={{ fontSize: 13, marginTop: 2 }}>
+                  The iceberg, the engine, the live numbers — a tour to show someone.
+                </div>
+              </div>
+              <Icon name="arrow-right" size={20} />
+            </div>
+          </Card>
+        </button>
 
         <div className={t.group}>
           <div className={s.sectionLabel}>Practice intensity</div>

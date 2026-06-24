@@ -1,0 +1,166 @@
+.page {
+  min-height: 100%;
+  max-width: 620px;
+  margin: 0 auto;
+  padding: var(--s-4) var(--s-5) calc(var(--s-8) + env(safe-area-inset-bottom));
+}
+
+.top {
+  display: flex;
+  align-items: center;
+  gap: var(--s-3);
+  padding: var(--s-2) 0 var(--s-5);
+}
+.backBtn {
+  background: none;
+  border: none;
+  color: var(--text-muted);
+  cursor: pointer;
+  display: inline-flex;
+  padding: 4px;
+  border-radius: 50%;
+}
+.backBtn:hover {
+  color: var(--text);
+}
+
+.hero {
+  font-family: var(--font-display);
+  font-size: 30px;
+  font-weight: 500;
+  line-height: 1.1;
+  letter-spacing: -0.01em;
+}
+.heroSub {
+  color: var(--text-muted);
+  font-size: 15px;
+  margin-top: 6px;
+}
+
+.section {
+  margin-top: var(--s-7);
+}
+.sectionLabel {
+  font-size: 13px;
+  font-weight: 500;
+  letter-spacing: 0.04em;
+  text-transform: uppercase;
+  color: var(--text-faint);
+  margin-bottom: var(--s-4);
+}
+.caption {
+  color: var(--text-muted);
+  font-size: 14px;
+  line-height: 1.6;
+  margin-top: var(--s-4);
+}
+
+.panel {
+  background: var(--surface);
+  border: 1px solid var(--border);
+  border-radius: var(--r-lg);
+  padding: var(--s-5);
+}
+
+/* live stat tiles */
+.stats {
+  display: grid;
+  grid-template-columns: repeat(2, 1fr);
+  gap: var(--s-3);
+}
+.tile {
+  background: var(--surface);
+  border: 1px solid var(--border);
+  border-radius: var(--r-lg);
+  padding: var(--s-5);
+}
+.tileNum {
+  font-family: var(--font-display);
+  font-size: 34px;
+  font-weight: 500;
+  line-height: 1;
+  color: var(--text);
+}
+.tileLabel {
+  color: var(--text-muted);
+  font-size: 14px;
+  margin-top: 8px;
+}
+
+/* daily loop strip */
+.loop {
+  display: flex;
+  flex-wrap: wrap;
+  align-items: center;
+  gap: 8px;
+}
+.loopStep {
+  background: var(--surface-sunk);
+  border-radius: var(--r-pill);
+  padding: 9px 15px;
+  font-size: 14px;
+  font-weight: 500;
+  color: var(--text);
+}
+.loopArrow {
+  color: var(--text-faint);
+}
+
+/* engine cards */
+.engine {
+  display: grid;
+  grid-template-columns: 1fr;
+  gap: var(--s-3);
+}
+.eCard {
+  background: var(--surface);
+  border: 1px solid var(--border);
+  border-radius: var(--r-lg);
+  padding: var(--s-5);
+  border-left: 3px solid var(--accent);
+}
+.eTitle {
+  font-family: var(--font-display);
+  font-size: 17px;
+  font-weight: 500;
+}
+.ePlain {
+  color: var(--text-faint);
+  font-size: 13px;
+  font-weight: 500;
+  margin: 2px 0 8px;
+}
+.eBody {
+  color: var(--text-muted);
+  font-size: 14px;
+  line-height: 1.55;
+}
+
+/* mastery legend */
+.legend {
+  display: flex;
+  gap: var(--s-4);
+  flex-wrap: wrap;
+  margin-top: var(--s-4);
+}
+.legendItem {
+  display: inline-flex;
+  align-items: center;
+  gap: 7px;
+  font-size: 13px;
+  color: var(--text-muted);
+}
+.dot {
+  width: 11px;
+  height: 11px;
+  border-radius: 4px;
+  border: 1.5px solid;
+}
+
+.footer {
+  margin-top: var(--s-7);
+  text-align: center;
+  color: var(--text-faint);
+  font-size: 13px;
+  line-height: 1.7;
+}

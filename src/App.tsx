@@ -6,6 +6,7 @@ import { Library } from "./screens/Library";
 import { Progress } from "./screens/Progress";
 import { Session } from "./screens/Session";
 import { Settings } from "./screens/Settings";
+import { System } from "./screens/System";
 import { Today } from "./screens/Today";
 import { Welcome } from "./screens/Welcome";
 
@@ -39,6 +40,7 @@ export default function App() {
           </RequireProfile>
         }
       />
+      <Route path="/system" element={<System />} />
       <Route path="*" element={<Navigate to="/" replace />} />
     </Routes>
   );

@@ -42,7 +42,11 @@ Built in the open, in phases:
 | 4 | Real learning engine — FSRS-6 scheduling + BKT mastery | done |
 | 5 | Content packs — full trading spine + business-for-kids, fact-checked | done |
 | 6 | Optional AI tutor — explanation grading + brain-dump review (BYO key) | done |
-| 7 | Prerequisite-gated unlocking, per-user FSRS tuning, AI question generation | next |
+| 7 | Kid mode (objective tap-to-answer + read-aloud) + 4 kid courses | done |
+| 8 | "How it works" showcase dashboard (iceberg, live stats, graph) | done |
+| 9 | Prerequisite-gated unlocking, per-user FSRS tuning, AI question generation | next |
+
+The kid path (for `child` profiles) swaps self-rating for **objectively graded tap-the-answer questions** (so a child can't fake mastery), reads every card aloud, and uses a first-grade-level UI. A **System dashboard** (`/system`, reachable from Settings) shows the whole iceberg, live counts, the FSRS spacing curve, and the live knowledge graph — built to demo the system to someone.
 
 The scheduling core is real: [`src/engine/fsrs.ts`](src/engine/fsrs.ts) implements the FSRS-6 DSR model (forgetting curve, stability/difficulty updates, retention-targeted intervals) and [`src/engine/bkt.ts`](src/engine/bkt.ts) tracks per-concept mastery, both covered by unit tests (`npm test`). The plain-language intensity dial maps to a desired-retention target. Still ahead: prerequisite-gated unlocking of new concepts, per-user FSRS optimization once there's enough review history, and optional AI item generation/grading under the guardrails in [`docs/ENGINE_SPEC.md`](docs/ENGINE_SPEC.md).
 
