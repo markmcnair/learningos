@@ -14,6 +14,7 @@ export type IconName =
   | "sun"
   | "moon"
   | "flame"
+  | "sound"
   | "arrow-right";
 
 const PATHS: Record<IconName, string> = {
@@ -29,6 +30,7 @@ const PATHS: Record<IconName, string> = {
   sun: "M12 7a5 5 0 1 0 0 10 5 5 0 0 0 0-10ZM12 2v2M12 20v2M4 12H2M22 12h-2M5 5l1.5 1.5M17.5 17.5 19 19M19 5l-1.5 1.5M6.5 17.5 5 19",
   moon: "M20 14a8 8 0 0 1-10-10 8 8 0 1 0 10 10Z",
   flame: "M12 3c1 3-1 4-2 6a4 4 0 1 0 7 2c0-3-3-4-5-8ZM12 21a4 4 0 0 1-1-7",
+  sound: "M4 9v6h4l5 4V5L8 9H4ZM16 9a3 3 0 0 1 0 6M18.5 7a6 6 0 0 1 0 10",
   "arrow-right": "M5 12h14M13 6l6 6-6 6",
 };
 

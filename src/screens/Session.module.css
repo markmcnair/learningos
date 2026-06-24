@@ -291,3 +291,84 @@
   font-size: 15px;
   color: var(--text-muted);
 }
+
+/* kid path — bigger, friendlier, tap-the-answer */
+.kidPrompt {
+  font-family: var(--font-display);
+  font-size: 30px;
+  line-height: 1.2;
+  letter-spacing: -0.01em;
+  font-weight: 500;
+}
+.kidPassage {
+  margin-top: var(--s-4);
+  font-size: 21px;
+  line-height: 1.55;
+  color: var(--text);
+}
+.speakBtn {
+  background: none;
+  border: none;
+  color: var(--accent);
+  cursor: pointer;
+  display: inline-flex;
+  align-items: center;
+  gap: 6px;
+  font-size: 15px;
+  font-weight: 500;
+  margin-top: var(--s-4);
+  padding: 6px 0;
+}
+.kidChoices {
+  display: flex;
+  flex-direction: column;
+  gap: var(--s-3);
+  margin-top: var(--s-6);
+}
+.kidChoice {
+  width: 100%;
+  text-align: left;
+  background: var(--surface);
+  border: 2px solid var(--border-strong);
+  border-radius: var(--r-lg);
+  padding: 20px 22px;
+  font-size: 21px;
+  font-weight: 500;
+  cursor: pointer;
+  transition: border-color var(--t-fast) var(--ease), background var(--t-fast) var(--ease),
+    transform var(--t-fast) var(--ease);
+}
+.kidChoice:hover:enabled {
+  border-color: var(--text-faint);
+}
+.kidChoice:active:enabled {
+  transform: translateY(1px);
+}
+.choiceRight {
+  border-color: var(--positive);
+  background: var(--positive-soft);
+  color: var(--positive);
+}
+.choiceWrong {
+  border-color: var(--gentle);
+  background: var(--signal-getting-bg);
+  color: var(--signal-getting-text);
+}
+.kidResult {
+  margin-top: var(--s-5);
+  font-size: 19px;
+  line-height: 1.5;
+}
+.kidResultRight {
+  color: var(--positive);
+}
+.kidResultWrong {
+  color: var(--signal-getting-text);
+}
+.kidDone h1 {
+  font-size: 34px;
+}
+.kidEmoji {
+  font-size: 56px;
+  line-height: 1;
+}

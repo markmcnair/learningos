@@ -11,6 +11,7 @@ import {
 import { Button, Icon, ProgressDots, Streak } from "../components/ui";
 import { useApp } from "../data/store";
 import type { Concept, Confidence, Grade, Item, ItemType } from "../data/types";
+import { speak, speechAvailable, stopSpeaking } from "../lib/speak";
 import s from "./Session.module.css";
 import sc from "./screens.module.css";
 
@@ -23,6 +24,7 @@ const KIND_LABEL: Record<ItemType, string> = {
   "worked-example": "Worked example",
   application: "Apply it",
   refutation: "A common myth",
+  pick: "Pick one",
 };
 
 const GRADES: { grade: Grade; label: string; tone?: "missed" | "good" }[] = [
@@ -38,7 +40,96 @@ const CONFIDENCE: { value: Confidence; label: string }[] = [
   { value: "sure", label: "Sure" },
 ];
 
-// Optional, AI-graded "explain it back" — only shown when AI is on.
+function shuffle<T>(arr: T[]): T[] {
+  const a = [...arr];
+  for (let i = a.length - 1; i > 0; i--) {
+    const j = Math.floor(Math.random() * (i + 1));
+    [a[i], a[j]] = [a[j], a[i]];
+  }
+  return a;
+}
+
+// Objective tap-the-answer — the kid path's anti-gaming workhorse. The system
+// checks the choice against the truth; random taps register as missed, and BKT
+// needs repeated correct answers across days before it ever says "solid".
+function Pick({
+  item,
+  child,
+  onResult,
+}: {
+  item: Item;
+  child: boolean;
+  onResult: (correct: boolean) => void;
+}) {
+  const [choices] = useState(() => shuffle(item.choices ?? []));
+  const [picked, setPicked] = useState<string | null>(null);
+  const answered = picked !== null;
+  const correct = answered && picked === item.correctChoice;
+  const aloud = () => `${item.prompt} Is it: ${choices.join(", or ")}?`;
+
+  useEffect(() => {
+    if (child) speak(aloud());
+    return () => stopSpeaking();
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, []);
+
+  function choose(c: string) {
+    if (answered) return;
+    setPicked(c);
+    if (child) speak((c === item.correctChoice ? "Yes! " : "Not quite. ") + (item.answer ?? ""));
+  }
+
+  return (
+    <div className={s.body}>
+      <div className={s.kind}>{child ? "Your turn" : "Pick one"}</div>
+      <h2 className={child ? s.kidPrompt : s.prompt}>{item.prompt}</h2>
+      {child && speechAvailable() && (
+        <button className={s.speakBtn} onClick={() => speak(aloud())}>
+          <Icon name="sound" size={18} />
+          Hear it again
+        </button>
+      )}
+
+      <div className={s.kidChoices}>
+        {choices.map((c) => {
+          const cls = !answered
+            ? ""
+            : c === item.correctChoice
+              ? s.choiceRight
+              : c === picked
+                ? s.choiceWrong
+                : "";
+          return (
+            <button
+              key={c}
+              className={`${s.kidChoice} ${cls}`}
+              disabled={answered}
+              onClick={() => choose(c)}
+            >
+              {c}
+            </button>
+          );
+        })}
+      </div>
+
+      {answered && (
+        <>
+          <div className={`${s.kidResult} ${correct ? s.kidResultRight : s.kidResultWrong}`}>
+            {correct ? "Yes! " : "Not quite. "}
+            {item.answer}
+          </div>
+          <div className={s.controls}>
+            <Button size="lg" block onClick={() => onResult(correct)}>
+              Next
+            </Button>
+          </div>
+        </>
+      )}
+    </div>
+  );
+}
+
+// Optional, AI-graded "explain it back" — adults only.
 function ExplainBack({ concept, item }: { concept: Concept; item: Item }) {
   const [open, setOpen] = useState(false);
   const [text, setText] = useState("");
@@ -85,9 +176,7 @@ function ExplainBack({ concept, item }: { concept: Concept; item: Item }) {
         </Button>
       </div>
       {feedback && (
-        <div
-          className={`${s.feedback} ${feedback.verdict === "on-track" ? s.fbOn : s.fbAmber}`}
-        >
+        <div className={`${s.feedback} ${feedback.verdict === "on-track" ? s.fbOn : s.fbAmber}`}>
           <span className={s.fbLabel}>
             {feedback.verdict === "on-track"
               ? "You've got it"
@@ -107,18 +196,26 @@ function ItemView({
   item,
   concept,
   aiActive,
+  child,
   onViewed,
   onGraded,
 }: {
   item: Item;
   concept: Concept | undefined;
   aiActive: boolean;
+  child: boolean;
   onViewed: () => void;
   onGraded: (grade: Grade, confidence: Confidence | null) => void;
 }) {
   const [revealed, setRevealed] = useState(false);
   const [confidence, setConfidence] = useState<Confidence | null>(null);
   const teaching = TEACHING.includes(item.type);
+
+  useEffect(() => {
+    if (child && teaching) speak(`${item.prompt}. ${item.body ?? ""}`);
+    return () => stopSpeaking();
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, []);
 
   function reveal(c: Confidence | null) {
     setConfidence(c);
@@ -127,18 +224,24 @@ function ItemView({
 
   return (
     <div className={s.body}>
-      <div className={s.kind}>{KIND_LABEL[item.type]}</div>
-      <h2 className={s.prompt}>{item.prompt}</h2>
-      {item.body && <p className={s.passage}>{item.body}</p>}
+      <div className={s.kind}>{child && teaching ? "Listen" : KIND_LABEL[item.type]}</div>
+      <h2 className={child ? s.kidPrompt : s.prompt}>{item.prompt}</h2>
+      {item.body && <p className={child ? s.kidPassage : s.passage}>{item.body}</p>}
 
       {teaching && (
         <>
+          {child && speechAvailable() && (
+            <button className={s.speakBtn} onClick={() => speak(`${item.prompt}. ${item.body ?? ""}`)}>
+              <Icon name="sound" size={18} />
+              Hear it again
+            </button>
+          )}
           <div className={s.controls}>
             <Button size="lg" block onClick={onViewed}>
-              Got it
+              {child ? "Got it!" : "Got it"}
             </Button>
           </div>
-          {aiActive && concept && <ExplainBack concept={concept} item={item} />}
+          {aiActive && concept && !child && <ExplainBack concept={concept} item={item} />}
         </>
       )}
 
@@ -220,7 +323,7 @@ function Reflect({
       try {
         setReview(await reviewBrainDump(studied, text));
         setBusy(false);
-        return; // show the review, then the user taps Finish
+        return;
       } catch {
         // fall through to finishing without a review
       }
@@ -307,11 +410,25 @@ export function Session() {
   } = useApp();
   const navigate = useNavigate();
 
+  const child = currentProfile?.readingLevel === "child";
+  const aiActive = !!currentProfile?.aiEnabled && hasKey();
+
   useEffect(() => {
     startTodaySession();
   }, [startTodaySession]);
 
-  const aiActive = !!currentProfile?.aiEnabled && hasKey();
+  // Kids skip the typed brain-dump — finish straight away.
+  useEffect(() => {
+    if (!child || !todaySession) return;
+    if (
+      todaySession.state !== "complete" &&
+      todaySession.currentIndex >= todaySession.itemIds.length
+    ) {
+      finishSession({ text: "", skipped: true });
+    }
+  }, [child, todaySession, finishSession]);
+
+  useEffect(() => () => stopSpeaking(), []);
 
   if (!todaySession) {
     return (
@@ -328,9 +445,8 @@ export function Session() {
   const currentItem = phase === "items" ? itemById(itemIds[currentIndex]) : undefined;
   const currentConcept = currentItem ? conceptById(currentItem.conceptId) : undefined;
 
-  // Concept summaries for the brain-dump review (one entry per concept studied).
   const studied: { title: string; body: string }[] = [];
-  if (phase === "reflect" && aiActive) {
+  if (phase === "reflect" && aiActive && !child) {
     const byConcept = new Map<string, string[]>();
     for (const id of itemIds) {
       const it = itemById(id);
@@ -345,11 +461,16 @@ export function Session() {
     }
   }
 
+  function leave() {
+    stopSpeaking();
+    navigate("/");
+  }
+
   return (
     <div className={s.player}>
       {phase !== "done" && (
         <div className={s.topbar}>
-          <button className={s.closeBtn} onClick={() => navigate("/")} aria-label="Leave session">
+          <button className={s.closeBtn} onClick={leave} aria-label="Leave session">
             <Icon name="close" size={22} />
           </button>
           <div className={s.dotsWrap}>
@@ -358,18 +479,28 @@ export function Session() {
         </div>
       )}
 
-      {phase === "items" && currentItem && (
-        <ItemView
-          key={currentIndex}
-          item={currentItem}
-          concept={currentConcept}
-          aiActive={aiActive}
-          onViewed={viewItem}
-          onGraded={(grade, confidence) => gradeItem(currentItem.id, grade, confidence)}
-        />
-      )}
+      {phase === "items" &&
+        currentItem &&
+        (currentItem.type === "pick" ? (
+          <Pick
+            key={currentIndex}
+            item={currentItem}
+            child={child}
+            onResult={(correct) => gradeItem(currentItem.id, correct ? "got-it" : "missed", null)}
+          />
+        ) : (
+          <ItemView
+            key={currentIndex}
+            item={currentItem}
+            concept={currentConcept}
+            aiActive={aiActive}
+            child={child}
+            onViewed={viewItem}
+            onGraded={(grade, confidence) => gradeItem(currentItem.id, grade, confidence)}
+          />
+        ))}
 
-      {phase === "reflect" && (
+      {phase === "reflect" && !child && (
         <Reflect
           aiActive={aiActive}
           studied={studied}
@@ -377,23 +508,48 @@ export function Session() {
         />
       )}
 
-      {phase === "done" && (
+      {phase === "reflect" && child && (
         <div className={s.body}>
-          <div className={s.doneWrap}>
-            <span className={s.doneCheck}>
-              <Icon name="check" size={40} strokeWidth={2} />
-            </span>
-            <h1>Done for today.</h1>
-            <p className={sc.muted}>{summary?.headline}</p>
-            <Streak days={summary?.newStreakDays ?? 0} />
-            <div style={{ marginTop: "var(--s-4)" }}>
-              <Button size="lg" onClick={() => navigate("/")}>
-                Back home
-              </Button>
-            </div>
-          </div>
+          <p className={sc.faint} style={{ textAlign: "center" }}>Great job!</p>
         </div>
       )}
+
+      {phase === "done" &&
+        (child ? (
+          <div className={s.body}>
+            <div className={`${s.doneWrap} ${s.kidDone}`}>
+              <span className={s.kidEmoji} aria-hidden="true">
+                🎉
+              </span>
+              <h1>All done!</h1>
+              <p className={sc.muted} style={{ fontSize: 19 }}>
+                Great job, {currentProfile?.displayName}!
+              </p>
+              <Streak days={summary?.newStreakDays ?? 0} />
+              <div style={{ marginTop: "var(--s-4)" }}>
+                <Button size="lg" onClick={leave}>
+                  Yay!
+                </Button>
+              </div>
+            </div>
+          </div>
+        ) : (
+          <div className={s.body}>
+            <div className={s.doneWrap}>
+              <span className={s.doneCheck}>
+                <Icon name="check" size={40} strokeWidth={2} />
+              </span>
+              <h1>Done for today.</h1>
+              <p className={sc.muted}>{summary?.headline}</p>
+              <Streak days={summary?.newStreakDays ?? 0} />
+              <div style={{ marginTop: "var(--s-4)" }}>
+                <Button size="lg" onClick={leave}>
+                  Back home
+                </Button>
+              </div>
+            </div>
+          </div>
+        ))}
     </div>
   );
 }

@@ -62,7 +62,8 @@ export type ItemType =
   | "concept-explanation" // a short teaching card, often no grading
   | "worked-example" // a step-by-step solved example to study
   | "application" // apply the idea to a small scenario / problem
-  | "refutation"; // names a common misconception, then corrects it
+  | "refutation" // names a common misconception, then corrects it
+  | "pick"; // tap-the-right-answer — objectively graded (used for kids)
 
 export interface ItemScheduling {
   due: ISODate;
@@ -83,6 +84,7 @@ export interface Item {
   clozeMask?: string[]; // hidden spans for "cloze"
   answer?: string; // canonical answer for recall / cloze / application
   choices?: string[]; // optional multiple choice
+  correctChoice?: string; // the correct option (for "pick" — objectively checked)
   misconception?: string; // the wrong belief (refutation)
   correction?: string; // the corrected belief (refutation)
   scheduling?: ItemScheduling; // engine-owned; never rendered

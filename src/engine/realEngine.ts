@@ -63,18 +63,28 @@ export const engine: LearningEngine = {
     const masteryById = new Map(concepts.map((c) => [c.id, c.mastery]));
     const inScope = items.filter((i) => activeConceptIds.has(i.conceptId));
 
-    // Items FSRS says are due — the spaced-repetition heartbeat.
-    const due = inScope.filter((i) => i.scheduling?.due && i.scheduling.due <= date);
+    // Due reviews interleave (discrimination among confusable, already-encoded
+    // ideas) — the spaced-repetition heartbeat.
+    const due = interleaveByConcept(inScope.filter((i) => i.scheduling?.due && i.scheduling.due <= date));
 
-    // Introduce un-scheduled items from concepts not yet solid, teaching first
-    // so a new idea is taught before it's tested.
+    // Brand-new concepts are taught BLOCKED, concept by concept (teach → its
+    // questions → next concept), never scattered — the science says hold off on
+    // interleaving until a schema forms. Teaching items come before practice.
     const typeRank = (t: Item["type"]) =>
       t === "concept-explanation" || t === "worked-example" ? 0 : t === "cloze" ? 1 : 2;
-    const introduce = inScope
-      .filter((i) => !i.scheduling?.due && masteryById.get(i.conceptId) !== "solid")
-      .sort((a, b) => typeRank(a.type) - typeRank(b.type));
+    const conceptOrder = concepts.filter((c) => activeConceptIds.has(c.id)).map((c) => c.id);
+    const introducePool = inScope.filter(
+      (i) => !i.scheduling?.due && masteryById.get(i.conceptId) !== "solid",
+    );
+    const introduce: Item[] = [];
+    for (const cid of conceptOrder) {
+      const forConcept = introducePool
+        .filter((i) => i.conceptId === cid)
+        .sort((a, b) => typeRank(a.type) - typeRank(b.type));
+      introduce.push(...forConcept);
+    }
 
-    const planned = interleaveByConcept([...due, ...introduce]).slice(0, MAX_ITEMS);
+    const planned = [...due, ...introduce].slice(0, MAX_ITEMS);
     const estMinutes = Math.min(20, Math.max(10, Math.round(planned.length * 1.4)));
     return { itemIds: planned.map((i) => i.id), estMinutes };
   },

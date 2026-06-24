@@ -115,6 +115,8 @@ const AVATAR_COLORS: Record<string, string> = {
   lemon: "#C9A227",
   sky: "#4F86C6",
   moss: "#5E8C61",
+  rose: "#C2557A",
+  grape: "#7E5BA6",
 };
 
 export function Avatar({ seed, name, size = 40 }: { seed: string; name: string; size?: number }) {

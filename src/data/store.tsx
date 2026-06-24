@@ -46,7 +46,7 @@ interface PersistState {
 }
 
 const STORAGE_KEY = "learningos:v1";
-const STATE_VERSION = 2; // bumped for the expanded, fact-checked content packs
+const STATE_VERSION = 3; // bumped for kid packs (Bible/Business/Missions/Money) + Selah/Caris profiles
 
 function seed(): PersistState {
   return {
