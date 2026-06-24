@@ -93,6 +93,12 @@ export interface AppApi {
   conceptById: (id: ID) => Concept | undefined;
   conceptsForPack: (packId: ID) => Concept[];
 
+  // AI concept generation (owner-gated)
+  pendingConcepts: () => Concept[];
+  addGeneratedConcept: (concept: Concept, items: Item[]) => void;
+  approveConcept: (id: ID) => void;
+  discardConcept: (id: ID) => void;
+
   // profile + settings
   selectProfile: (id: ID) => void;
   createProfile: (input: { displayName: string; readingLevel: ReadingLevel; packId: ID }) => void;
@@ -156,9 +162,30 @@ export function AppProvider({ children }: { children: ReactNode }) {
     [state.concepts],
   );
   const conceptsForPack = useCallback(
-    (packId: ID) => state.concepts.filter((c) => c.packId === packId),
+    (packId: ID) => state.concepts.filter((c) => c.packId === packId && c.status !== "pending"),
     [state.concepts],
   );
+  const pendingConcepts = useCallback(
+    () => state.concepts.filter((c) => c.status === "pending"),
+    [state.concepts],
+  );
+
+  const addGeneratedConcept = useCallback((concept: Concept, newItems: Item[]) => {
+    setState((s) => ({ ...s, concepts: [...s.concepts, concept], items: [...s.items, ...newItems] }));
+  }, []);
+  const approveConcept = useCallback((id: ID) => {
+    setState((s) => ({
+      ...s,
+      concepts: s.concepts.map((c) => (c.id === id ? { ...c, status: "approved" } : c)),
+    }));
+  }, []);
+  const discardConcept = useCallback((id: ID) => {
+    setState((s) => ({
+      ...s,
+      concepts: s.concepts.filter((c) => c.id !== id),
+      items: s.items.filter((i) => i.conceptId !== id),
+    }));
+  }, []);
 
   const selectProfile = useCallback((id: ID) => {
     setState((s) => ({ ...s, currentProfileId: id }));
@@ -234,10 +261,13 @@ export function AppProvider({ children }: { children: ReactNode }) {
         }
         return s;
       }
+      // Pending (un-approved AI) concepts never enter a session.
+      const liveConcepts = s.concepts.filter((c) => c.status !== "pending");
+      const liveIds = new Set(liveConcepts.map((c) => c.id));
       const planned = engine.buildTodaySession({
         profile,
-        concepts: s.concepts,
-        items: s.items,
+        concepts: liveConcepts,
+        items: s.items.filter((i) => liveIds.has(i.conceptId)),
         date: APP_TODAY,
       });
       const session: Session = {
@@ -350,7 +380,7 @@ export function AppProvider({ children }: { children: ReactNode }) {
   const progressForCurrent = useCallback((): ProgressSnapshot[] => {
     if (!currentProfile) return [];
     return currentProfile.activePackIds.map((packId) => {
-      const concepts = state.concepts.filter((c) => c.packId === packId);
+      const concepts = state.concepts.filter((c) => c.packId === packId && c.status !== "pending");
       const solidIds = new Set(concepts.filter((c) => c.mastery === "solid").map((c) => c.id));
       const nextUp = concepts
         .filter(
@@ -411,6 +441,10 @@ export function AppProvider({ children }: { children: ReactNode }) {
     itemById,
     conceptById,
     conceptsForPack,
+    pendingConcepts,
+    addGeneratedConcept,
+    approveConcept,
+    discardConcept,
     selectProfile,
     createProfile,
     setTheme,

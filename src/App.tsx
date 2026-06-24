@@ -5,6 +5,7 @@ import { useApp } from "./data/store";
 import { Library } from "./screens/Library";
 import { Progress } from "./screens/Progress";
 import { Session } from "./screens/Session";
+import { Grow } from "./screens/Grow";
 import { Settings } from "./screens/Settings";
 import { System } from "./screens/System";
 import { Today } from "./screens/Today";
@@ -41,6 +42,7 @@ export default function App() {
         }
       />
       <Route path="/system" element={<System />} />
+      <Route path="/grow" element={<Grow />} />
       <Route path="*" element={<Navigate to="/" replace />} />
     </Routes>
   );

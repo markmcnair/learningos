@@ -133,6 +133,33 @@ export function Settings() {
           </Card>
         </button>
 
+        <button
+          onClick={() => navigate("/grow")}
+          style={{
+            display: "block",
+            width: "100%",
+            background: "none",
+            border: "none",
+            padding: 0,
+            cursor: "pointer",
+            textAlign: "left",
+          }}
+        >
+          <Card>
+            <div className={t.profileCard}>
+              <div className={t.profileGrow}>
+                <div style={{ fontFamily: "var(--font-display)", fontSize: 17, fontWeight: 500 }}>
+                  Grow a course with AI
+                </div>
+                <div className={s.faint} style={{ fontSize: 13, marginTop: 2 }}>
+                  Generate new concepts that build on what's mastered — you approve each one.
+                </div>
+              </div>
+              <Icon name="arrow-right" size={20} />
+            </div>
+          </Card>
+        </button>
+
         <div className={t.group}>
           <div className={s.sectionLabel}>Practice intensity</div>
           <div className={t.segmented}>

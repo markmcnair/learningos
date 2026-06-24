@@ -52,6 +52,11 @@ export interface Concept {
   mastery: MasterySignal; // the surface signal, derived from bktP
   bktP?: number; // BKT mastery probability — engine internal, never rendered
   relearnReps?: number; // consecutive successful recalls (successive relearning)
+  // AI-generated concepts: held as "pending" until the owner approves them, so
+  // nothing new reaches a learner (or a child) without a human sign-off.
+  source?: "ai";
+  status?: "pending" | "approved";
+  review?: { rationale: string; recommendation: "approve" | "review"; issues: string[] };
 }
 
 // ---- Items: the atomic things a session is made of ----

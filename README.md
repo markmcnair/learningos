@@ -44,7 +44,10 @@ Built in the open, in phases:
 | 6 | Optional AI tutor — explanation grading + brain-dump review (BYO key) | done |
 | 7 | Kid mode (objective tap-to-answer + read-aloud) + 4 kid courses | done |
 | 8 | "How it works" showcase dashboard (iceberg, live stats, graph) | done |
-| 9 | Prerequisite-gated unlocking, per-user FSRS tuning, AI question generation | next |
+| 9 | AI course growth — generate new concepts, verify, owner-approve | done |
+| 10 | Prerequisite-gated unlocking, per-user FSRS tuning | next |
+
+**Growing a course** (`/grow`, from Settings): with AI on, the system proposes a brand-new concept that builds on what's mastered, then an independent **verification pass** adversarially checks it (recomputes finance numbers; checks reading level + theology for kid packs). Nothing reaches a learner until the **owner approves** it — so a child never sees AI-generated content a parent hasn't signed off on. The generation/verification prompts are red-teamed (`src/ai/genPrompts.ts`).
 
 The kid path (for `child` profiles) swaps self-rating for **objectively graded tap-the-answer questions** (so a child can't fake mastery), reads every card aloud, and uses a first-grade-level UI. A **System dashboard** (`/system`, reachable from Settings) shows the whole iceberg, live counts, the FSRS spacing curve, and the live knowledge graph — built to demo the system to someone.
 
