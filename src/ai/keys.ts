@@ -21,15 +21,18 @@ export const ANTHROPIC_MODELS: ModelOption[] = [
   { id: "claude-haiku-4-5", label: "Fastest & cheapest" },
 ];
 
+// OpenRouter has hundreds of models — these are just quick-pick chips. Any
+// slug from openrouter.ai/models can be typed in directly.
 export const OPENROUTER_MODELS: ModelOption[] = [
-  { id: "anthropic/claude-opus-4.8", label: "Most capable" },
-  { id: "anthropic/claude-sonnet-4.6", label: "Balanced" },
-  { id: "anthropic/claude-haiku-4.5", label: "Fastest & cheapest" },
+  { id: "deepseek/deepseek-v4-flash", label: "DeepSeek V4 Flash" },
+  { id: "anthropic/claude-sonnet-4.6", label: "Claude Sonnet" },
+  { id: "anthropic/claude-haiku-4.5", label: "Claude Haiku" },
+  { id: "anthropic/claude-opus-4.8", label: "Claude Opus" },
 ];
 
 const DEFAULTS: Record<Provider, string> = {
   anthropic: "claude-opus-4-8",
-  openrouter: "anthropic/claude-sonnet-4.6", // a sensible, cheaper default for frequent grading
+  openrouter: "anthropic/claude-sonnet-4.6", // sensible default; fully overridable
 };
 
 export function getKey(): string {
@@ -69,7 +72,9 @@ function modelStorageKey(p: Provider): string {
 export function getModel(p: Provider = provider()): string {
   try {
     const m = localStorage.getItem(modelStorageKey(p));
-    return m && modelsFor(p).some((x) => x.id === m) ? m : DEFAULTS[p];
+    // Any non-empty slug is allowed (OpenRouter has hundreds); presets are
+    // only quick-pick suggestions, not a whitelist.
+    return m && m.trim() ? m : DEFAULTS[p];
   } catch {
     return DEFAULTS[p];
   }

@@ -164,17 +164,46 @@ export function Settings() {
                 <span className={s.faint} style={{ fontSize: 13 }}>
                   Model
                 </span>
-                <div className={t.segmented} style={{ marginTop: 6 }}>
-                  {modelsFor(p).map((m) => (
-                    <button
-                      key={m.id}
-                      className={`${t.seg} ${model === m.id ? t.segActive : ""}`}
-                      onClick={() => onModelChange(m.id)}
-                    >
-                      {m.label}
-                    </button>
-                  ))}
-                </div>
+                {p === "openrouter" ? (
+                  <>
+                    <input
+                      className={t.keyInput}
+                      type="text"
+                      value={model}
+                      spellCheck={false}
+                      autoComplete="off"
+                      placeholder="e.g. deepseek/deepseek-v4-flash"
+                      onChange={(e) => onModelChange(e.target.value)}
+                      style={{ marginTop: 6 }}
+                    />
+                    <div className={t.chips}>
+                      {modelsFor(p).map((m) => (
+                        <button
+                          key={m.id}
+                          className={`${t.chip} ${model === m.id ? t.chipActive : ""}`}
+                          onClick={() => onModelChange(m.id)}
+                        >
+                          {m.label}
+                        </button>
+                      ))}
+                    </div>
+                    <p className={s.faint} style={{ fontSize: 12, marginTop: 6 }}>
+                      Any model id from openrouter.ai/models works.
+                    </p>
+                  </>
+                ) : (
+                  <div className={t.segmented} style={{ marginTop: 6 }}>
+                    {modelsFor(p).map((m) => (
+                      <button
+                        key={m.id}
+                        className={`${t.seg} ${model === m.id ? t.segActive : ""}`}
+                        onClick={() => onModelChange(m.id)}
+                      >
+                        {m.label}
+                      </button>
+                    ))}
+                  </div>
+                )}
               </div>
 
               <div className={t.dataRow} style={{ marginTop: "var(--s-4)", alignItems: "center" }}>

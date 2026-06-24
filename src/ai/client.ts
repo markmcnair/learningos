@@ -78,10 +78,11 @@ async function callOpenRouter<T>(apiKey: string, { system, user, schema, maxToke
         "Content-Type": "application/json",
         "X-Title": "LearningOS",
       },
+      // No response_format: not every OpenRouter model supports it. The strong
+      // JSON instruction below plus the tolerant parser handle any model.
       body: JSON.stringify({
         model: getModel(),
         max_tokens: maxTokens,
-        response_format: { type: "json_object" },
         messages: [
           { role: "system", content: `${system}\n\n${schemaHint(schema)}` },
           { role: "user", content: user },
