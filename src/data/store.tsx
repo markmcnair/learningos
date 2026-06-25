@@ -7,6 +7,7 @@ import {
   useState,
   type ReactNode,
 } from "react";
+import { daysBetween } from "../engine/dates";
 import {
   engine,
   FOUNDATION_PROVEN_DAYS,
@@ -54,16 +55,24 @@ const STORAGE_KEY = "learningos:v1";
 const STATE_VERSION = 3; // bumped for kid packs (Bible/Business/Missions/Money) + Selah/Caris profiles
 
 // Grandfather already-mastered concepts as proven foundations, so turning on
-// prerequisite gating never re-locks progress a learner already earned. Brand
-// new learning still has to prove its days the honest way (provenDays starts 0).
+// prerequisite gating never re-locks progress a learner already earned (brand
+// new learning still earns its days the honest way, provenDays starting 0), and
+// heal any broken prerequisite edges (a self-reference or an id that no longer
+// resolves to a concept — e.g. a discarded AI concept) so the gate can never
+// get stuck permanently on something unsatisfiable.
 function normalize(state: PersistState): PersistState {
+  const ids = new Set(state.concepts.map((c) => c.id));
   return {
     ...state,
-    concepts: state.concepts.map((c) =>
-      c.provenDays == null
-        ? { ...c, provenDays: c.mastery === "solid" ? FOUNDATION_PROVEN_DAYS : 0 }
-        : c,
-    ),
+    concepts: state.concepts.map((c) => {
+      const provenDays =
+        c.provenDays == null ? (c.mastery === "solid" ? FOUNDATION_PROVEN_DAYS : 0) : c.provenDays;
+      const cleanPrereqs = c.prerequisiteIds.filter((p) => p !== c.id && ids.has(p));
+      const prereqsChanged = cleanPrereqs.length !== c.prerequisiteIds.length;
+      return c.provenDays == null || prereqsChanged
+        ? { ...c, provenDays, prerequisiteIds: cleanPrereqs }
+        : c;
+    }),
   };
 }
 
@@ -249,7 +258,15 @@ export function AppProvider({ children }: { children: ReactNode }) {
   const discardConcept = useCallback((id: ID) => {
     setState((s) => ({
       ...s,
-      concepts: s.concepts.filter((c) => c.id !== id),
+      // Remove the concept AND scrub it from any other concept's prerequisites,
+      // so nothing is left gated behind an id that no longer exists.
+      concepts: s.concepts
+        .filter((c) => c.id !== id)
+        .map((c) =>
+          c.prerequisiteIds.includes(id)
+            ? { ...c, prerequisiteIds: c.prerequisiteIds.filter((p) => p !== id) }
+            : c,
+        ),
       items: s.items.filter((i) => i.conceptId !== id),
     }));
   }, []);
@@ -455,12 +472,16 @@ export function AppProvider({ children }: { children: ReactNode }) {
       if (!profile || !session) return s;
       const sessionReviews = s.reviews.filter((r) => r.sessionId === session.id);
       const positiveCount = sessionReviews.filter((r) => PAID_ATTENTION.includes(r.grade)).length;
-      const alreadyCountedToday = profile.lastCompletedDate === APP_TODAY;
+      // Days since the last completed day, so the engine can extend a streak,
+      // leave it (a second session same day), or reset it after a missed day.
+      const daysSinceLast = profile.lastCompletedDate
+        ? daysBetween(profile.lastCompletedDate, APP_TODAY)
+        : null;
       const summary = engine.summarizeSession({
         itemsDone: session.itemIds.length,
         positiveCount,
         prevStreak: profile.streakDays,
-        alreadyCountedToday,
+        daysSinceLast,
       });
       return {
         ...s,
@@ -486,14 +507,18 @@ export function AppProvider({ children }: { children: ReactNode }) {
 
   const progressForCurrent = useCallback((): ProgressSnapshot[] => {
     if (!currentProfile) return [];
+    const started = new Set(state.items.filter((i) => i.scheduling?.due).map((i) => i.conceptId));
     return currentProfile.activePackIds.map((packId) => {
       const concepts = state.concepts.filter((c) => c.packId === packId && c.status !== "pending");
-      // The frontier: not-yet-solid concepts whose prerequisites are all proven
-      // foundations — exactly what the gate will let you start next.
+      // The frontier: brand-new (not yet started, not solid) concepts whose
+      // prerequisites are all proven foundations — exactly what the gate will
+      // introduce next. Mirrors the engine's freshConceptIds, so "Up next"
+      // never lists a concept you're already mid-way through.
       const nextUp = concepts
         .filter(
           (c) =>
             c.mastery !== "solid" &&
+            !started.has(c.id) &&
             c.prerequisiteIds.every((p) => isProvenFoundation(conceptsById.get(p))),
         )
         .map((c) => c.id);
@@ -508,7 +533,7 @@ export function AppProvider({ children }: { children: ReactNode }) {
         nextUp,
       };
     });
-  }, [currentProfile, state.concepts]);
+  }, [currentProfile, state.concepts, state.items, conceptsById]);
 
   const calibrationForCurrent = useCallback((): CalibrationPoint[] => {
     if (!currentProfile) return [];

@@ -6,8 +6,20 @@ import type { Concept, Item, Pack, Profile } from "./types";
 
 // Real "today" — a spaced-repetition app must run on a clock that actually
 // advances, or reviews never re-come-due and nothing can be proven over time.
-// Seed reviews are anchored to today so a returning learner has work waiting.
-const TODAY = new Date().toISOString().slice(0, 10);
+// Use the LOCAL calendar day (not UTC): the day boundary a learner feels is
+// their own midnight, and the greeting already reads local time — keying the
+// streak/session day off UTC would roll over hours early for western users.
+// (Day-string arithmetic in engine/dates.ts is offset-symmetric, so anchoring
+// "today" locally while it parses at UTC midnight stays consistent.)
+const now = new Date();
+const TODAY = `${now.getFullYear()}-${String(now.getMonth() + 1).padStart(2, "0")}-${String(
+  now.getDate(),
+).padStart(2, "0")}`;
+// Yesterday, so the seeded learner's streak reads as still alive on first open.
+const yest = new Date(now.getFullYear(), now.getMonth(), now.getDate() - 1);
+const YESTERDAY = `${yest.getFullYear()}-${String(yest.getMonth() + 1).padStart(2, "0")}-${String(
+  yest.getDate(),
+).padStart(2, "0")}`;
 
 export const SEED_ITEMS: Item[] = [
   {
@@ -1491,7 +1503,7 @@ export const SEED_PACKS: Pack[] = [
 ];
 
 export const SEED_PROFILES: Profile[] = [
-  { id: "p-dad", displayName: "Dad", avatarSeed: "ember", readingLevel: "expert", activePackIds: ["trading-foundations"], streakDays: 23, lastCompletedDate: "2026-06-22", aiEnabled: false, intensity: "steady", createdAt: "2026-05-01T09:00:00.000Z" },
+  { id: "p-dad", displayName: "Dad", avatarSeed: "ember", readingLevel: "expert", activePackIds: ["trading-foundations"], streakDays: 23, lastCompletedDate: YESTERDAY, aiEnabled: false, intensity: "steady", createdAt: "2026-05-01T09:00:00.000Z" },
   { id: "p-selah", displayName: "Selah", avatarSeed: "rose", readingLevel: "child", activePackIds: ["bible-for-kids"], streakDays: 0, lastCompletedDate: null, aiEnabled: false, intensity: "gentle", createdAt: "2026-06-20T09:00:00.000Z" },
   { id: "p-caris", displayName: "Caris", avatarSeed: "grape", readingLevel: "child", activePackIds: ["bible-for-kids"], streakDays: 0, lastCompletedDate: null, aiEnabled: false, intensity: "gentle", createdAt: "2026-06-20T09:00:00.000Z" },
 ];

@@ -42,7 +42,7 @@ export interface SummarizeInput {
   itemsDone: number;
   positiveCount: number; // got-it / easy
   prevStreak: number;
-  alreadyCountedToday: boolean;
+  daysSinceLast: number | null; // days between last completion and today; null if first ever
 }
 
 export interface LearningEngine {

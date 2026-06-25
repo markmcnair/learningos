@@ -46,9 +46,23 @@ export function unmetPrerequisites(
   concept: Concept,
   byId: Map<ID, Concept>,
 ): Concept[] {
+  // Surface EVERY prerequisite that isn't a proven foundation — including one
+  // whose id no longer resolves to a concept (a stale/removed reference). The
+  // gate (prerequisitesMet) treats a missing id as unmet and locks; this must
+  // stay in lockstep so the "🔒 unlocks after …" hint is never silently empty.
   return concept.prerequisiteIds
-    .map((id) => byId.get(id))
-    .filter((p): p is Concept => !!p && !isProvenFoundation(p));
+    .filter((id) => !isProvenFoundation(byId.get(id)))
+    .map(
+      (id): Concept =>
+        byId.get(id) ?? {
+          id,
+          packId: concept.packId,
+          title: "a prerequisite",
+          prerequisiteIds: [],
+          itemIds: [],
+          mastery: "new",
+        },
+    );
 }
 
 export function prerequisitesMet(concept: Concept, byId: Map<ID, Concept>): boolean {
@@ -183,7 +197,6 @@ export const engine: LearningEngine = {
       ...concept,
       bktP: nextP,
       mastery: signalFromP(nextP),
-      relearnReps: correct ? (concept.relearnReps ?? 0) + 1 : 0,
       provenDays: correct ? (concept.provenDays ?? 0) + (countsNewDay ? 1 : 0) : 0,
       lastProvenDay: correct ? date : undefined,
     };
@@ -192,10 +205,13 @@ export const engine: LearningEngine = {
     // items on a short ~1-day step so they come back on the learner's NEXT
     // visit and durability gets confirmed at their own cadence — not after a
     // long FSRS gap (which would strand a daily learner with a locked next
-    // concept and empty days). Once proven, graduate to full FSRS spacing.
+    // concept and empty days). This applies to a LAPSE too: a missed not-yet-
+    // proven item is exactly the one that most needs to come back soon, so it
+    // must not escape the cap onto a long FSRS interval. Once proven, graduate
+    // to full FSRS spacing.
     const fsrsInterval = nextIntervalDays(fsrsState.stability, retention);
     const proven = (newConcept.provenDays ?? 0) >= FOUNDATION_PROVEN_DAYS;
-    const interval = correct && !proven ? Math.min(fsrsInterval, RELEARN_STEP_DAYS) : fsrsInterval;
+    const interval = proven ? fsrsInterval : Math.min(fsrsInterval, RELEARN_STEP_DAYS);
     const newItem: Item = {
       ...item,
       scheduling: {
@@ -216,8 +232,12 @@ export const engine: LearningEngine = {
     return concept.bktP != null ? signalFromP(concept.bktP) : concept.mastery;
   },
 
-  summarizeSession({ itemsDone, positiveCount, prevStreak, alreadyCountedToday }: SummarizeInput) {
-    const newStreakDays = alreadyCountedToday ? prevStreak : prevStreak + 1;
+  summarizeSession({ itemsDone, positiveCount, prevStreak, daysSinceLast }: SummarizeInput) {
+    // A streak is CONSECUTIVE days, so it must reset on a gap — not just dedupe
+    // same-day completions. 0 = already counted today (unchanged); 1 = the next
+    // day (extend); null (first ever) or >1 (a day was missed) = start fresh at 1.
+    const newStreakDays =
+      daysSinceLast === 0 ? prevStreak : daysSinceLast === 1 ? prevStreak + 1 : 1;
     let headline: string;
     if (itemsDone === 0) {
       headline = "You showed up — that's the habit.";

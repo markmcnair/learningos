@@ -51,7 +51,6 @@ export interface Concept {
   itemIds: ID[]; // the items that teach / test this concept
   mastery: MasterySignal; // the surface signal, derived from bktP
   bktP?: number; // BKT mastery probability — engine internal, never rendered
-  relearnReps?: number; // consecutive successful recalls (successive relearning)
   // Successive relearning across SPACED time: the count of distinct days this
   // concept was recalled correctly, and the last such day (so same-day repeats
   // don't inflate it). A concept only becomes a "proven foundation" — safe to

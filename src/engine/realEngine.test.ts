@@ -1,7 +1,7 @@
 import { describe, expect, it } from "vitest";
 import type { Concept, Item, Profile } from "../data/types";
 import { daysBetween } from "./dates";
-import { engine } from "./realEngine";
+import { engine, unmetPrerequisites } from "./realEngine";
 
 // Minimal fixtures: one pack, N concepts, each with a teaching card + one question.
 const PACK = "p1";
@@ -229,6 +229,59 @@ describe("applyReview — successive relearning across days", () => {
     expect(daysBetween("2026-06-25", r1.item.scheduling!.due)).toBeLessThanOrEqual(1); // not proven → short step
     const r2 = review(r1.item, r1.concept, "2026-06-26", "got-it");
     expect(r2.concept.provenDays).toBe(2); // now a proven foundation
-    expect(daysBetween("2026-06-26", r2.item.scheduling!.due)).toBeGreaterThan(1); // graduated → real spacing
+    // Graduated → real FSRS spacing, well past the 1-day relearn cap (a collapse
+    // to a flat ≤2-day interval would fail this).
+    expect(daysBetween("2026-06-26", r2.item.scheduling!.due)).toBeGreaterThanOrEqual(3);
+  });
+
+  it("keeps a MISSED not-yet-proven item on the short step too (no empty next day)", () => {
+    // got-it builds stability; a later miss must still come back next visit, not
+    // jump to the longer FSRS lapse interval — otherwise a single wrong tap can
+    // strand a learner with an empty, locked day.
+    const r1 = review(ITEM, CONCEPT, "2026-06-25", "got-it");
+    const miss = review(r1.item, r1.concept, "2026-06-26", "missed");
+    expect(miss.concept.provenDays).toBe(0); // un-proven again
+    expect(daysBetween("2026-06-26", miss.item.scheduling!.due)).toBeLessThanOrEqual(1);
+  });
+});
+
+describe("summarizeSession — streak is consecutive days", () => {
+  const base = { itemsDone: 5, positiveCount: 3, prevStreak: 7 };
+  it("extends on the next day", () => {
+    expect(engine.summarizeSession({ ...base, daysSinceLast: 1 }).newStreakDays).toBe(8);
+  });
+  it("leaves it unchanged for a second session the same day", () => {
+    expect(engine.summarizeSession({ ...base, daysSinceLast: 0 }).newStreakDays).toBe(7);
+  });
+  it("resets to 1 after a missed day (a gap > 1)", () => {
+    expect(engine.summarizeSession({ ...base, daysSinceLast: 3 }).newStreakDays).toBe(1);
+  });
+  it("starts at 1 on the very first completion", () => {
+    expect(engine.summarizeSession({ ...base, prevStreak: 0, daysSinceLast: null }).newStreakDays).toBe(1);
+  });
+});
+
+describe("buildTodaySession — a stale/missing prerequisite fails CLOSED", () => {
+  it("locks a concept whose prerequisite id resolves to nothing, and surfaces it", () => {
+    const orphan: Concept = {
+      id: "orphan",
+      packId: PACK,
+      title: "Orphan",
+      prerequisiteIds: ["ghost"], // no such concept
+      itemIds: ["orphan-q"],
+      mastery: "new",
+    };
+    const orphanItems: Item[] = [
+      { id: "orphan-q", conceptId: "orphan", type: "application", prompt: "q", answer: "a" },
+    ];
+    const plan = engine.buildTodaySession({
+      profile: profile("steady"),
+      concepts: [orphan],
+      items: orphanItems,
+      date: "2026-06-25",
+    });
+    expect(plan.itemIds).not.toContain("orphan-q"); // locked, not silently unlocked
+    // and the lock is reported (non-empty) so the UI can explain it
+    expect(unmetPrerequisites(orphan, new Map([["orphan", orphan]])).length).toBe(1);
   });
 });

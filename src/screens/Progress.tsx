@@ -72,7 +72,8 @@ export function Progress() {
                   return (
                     <div key={c.id} className={s.rowBetween}>
                       <span className={locked ? s.faint : undefined} style={{ fontSize: 15 }}>
-                        {locked ? "🔒 " : ""}
+                        {locked && <span className="sr-only">Locked — </span>}
+                        {locked ? <span aria-hidden="true">🔒 </span> : null}
                         {c.title}
                       </span>
                       {locked ? (

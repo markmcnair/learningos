@@ -77,6 +77,13 @@ export function Grow() {
         });
       });
 
+      // A concept needs at least one gradable item (beyond the teaching card),
+      // or it could never be proven — and anything depending on it would lock
+      // forever. Reject a teaching-only proposal rather than approve a dead end.
+      if (items.length < 2) {
+        throw new Error("That concept came back with no usable questions. Try generating again.");
+      }
+
       const titleToId = new Map(packConcepts.map((c) => [c.title, c.id]));
       const prerequisiteIds = proposal.prerequisiteTitles
         .map((t) => titleToId.get(t))
