@@ -52,6 +52,13 @@ export interface Concept {
   mastery: MasterySignal; // the surface signal, derived from bktP
   bktP?: number; // BKT mastery probability — engine internal, never rendered
   relearnReps?: number; // consecutive successful recalls (successive relearning)
+  // Successive relearning across SPACED time: the count of distinct days this
+  // concept was recalled correctly, and the last such day (so same-day repeats
+  // don't inflate it). A concept only becomes a "proven foundation" — safe to
+  // build new concepts on top of — once this survives ≥1 day gap, so mastery
+  // can't be crammed open in a single sitting. Engine-internal, never rendered.
+  provenDays?: number;
+  lastProvenDay?: ISODate;
   // AI-generated concepts: held as "pending" until the owner approves them, so
   // nothing new reaches a learner (or a child) without a human sign-off.
   source?: "ai";

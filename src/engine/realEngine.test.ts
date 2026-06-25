@@ -1,5 +1,6 @@
 import { describe, expect, it } from "vitest";
 import type { Concept, Item, Profile } from "../data/types";
+import { daysBetween } from "./dates";
 import { engine } from "./realEngine";
 
 // Minimal fixtures: one pack, N concepts, each with a teaching card + one question.
@@ -133,5 +134,101 @@ describe('buildTodaySession — "extra" round', () => {
     // Only the next new concepts (c7, c8) — nothing from c1..c6, not even their
     // unscheduled teaching cards.
     expect(new Set(plan.itemIds)).toEqual(new Set(["c7-teach", "c7-q", "c8-teach", "c8-q"]));
+  });
+});
+
+describe("buildTodaySession — prerequisite gate", () => {
+  const ROOT = (over: Partial<Concept> = {}): Concept => ({
+    id: "root",
+    packId: PACK,
+    title: "Root",
+    prerequisiteIds: [],
+    itemIds: ["root-q"],
+    mastery: "solid",
+    ...over,
+  });
+  const DEP: Concept = {
+    id: "dep",
+    packId: PACK,
+    title: "Dependent",
+    prerequisiteIds: ["root"],
+    itemIds: ["dep-teach", "dep-q"],
+    mastery: "new",
+  };
+  const DEP_ITEMS: Item[] = [
+    { id: "dep-teach", conceptId: "dep", type: "concept-explanation", prompt: "t" },
+    { id: "dep-q", conceptId: "dep", type: "application", prompt: "q", answer: "a" },
+  ];
+  // root has a (due) review so the session isn't empty — its presence is incidental.
+  const ROOT_ITEMS: Item[] = [
+    {
+      id: "root-q",
+      conceptId: "root",
+      type: "application",
+      prompt: "q",
+      answer: "a",
+      scheduling: { due: "2026-06-20", lastReview: "2026-06-20" },
+    },
+  ];
+  const plan = (concepts: Concept[]) =>
+    engine.buildTodaySession({
+      profile: profile("steady"),
+      concepts,
+      items: [...ROOT_ITEMS, ...DEP_ITEMS],
+      date: "2026-06-25",
+    });
+
+  it("locks a concept whose prerequisite is mastered but crammed (only 1 proven day)", () => {
+    const ids = plan([ROOT({ provenDays: 1 }), DEP]).itemIds;
+    expect(ids).not.toContain("dep-teach");
+    expect(ids).not.toContain("dep-q");
+  });
+
+  it("unlocks the concept once its prerequisite is a proven foundation (≥2 days)", () => {
+    const ids = plan([ROOT({ provenDays: 2 }), DEP]).itemIds;
+    expect(ids).toContain("dep-teach");
+    expect(ids).toContain("dep-q");
+  });
+
+  it("locks a concept whose prerequisite isn't even mastered yet", () => {
+    const ids = plan([ROOT({ mastery: "getting-it", provenDays: 9 }), DEP]).itemIds;
+    expect(ids).not.toContain("dep-q");
+  });
+});
+
+describe("applyReview — successive relearning across days", () => {
+  const ITEM: Item = { id: "x", conceptId: "k", type: "application", prompt: "q", answer: "a" };
+  const CONCEPT: Concept = {
+    id: "k",
+    packId: PACK,
+    title: "K",
+    prerequisiteIds: [],
+    itemIds: ["x"],
+    mastery: "new",
+  };
+  const review = (item: Item, concept: Concept, date: string, grade: "got-it" | "missed") =>
+    engine.applyReview({ item, concept, grade, date, retention: 0.9 });
+
+  it("counts one proven day per distinct day, never per answer", () => {
+    const r1 = review(ITEM, CONCEPT, "2026-06-25", "got-it");
+    expect(r1.concept.provenDays).toBe(1);
+    const r1b = review(r1.item, r1.concept, "2026-06-25", "got-it"); // same day again
+    expect(r1b.concept.provenDays).toBe(1);
+    const r2 = review(r1b.item, r1b.concept, "2026-06-26", "got-it"); // next day
+    expect(r2.concept.provenDays).toBe(2);
+  });
+
+  it("a miss resets the proven-day streak", () => {
+    const r1 = review(ITEM, CONCEPT, "2026-06-25", "got-it");
+    const miss = review(r1.item, r1.concept, "2026-06-26", "missed");
+    expect(miss.concept.provenDays).toBe(0);
+  });
+
+  it("holds a fresh concept on a short ~1-day step, then graduates to FSRS spacing", () => {
+    const r1 = review(ITEM, CONCEPT, "2026-06-25", "got-it");
+    expect(daysBetween("2026-06-25", r1.item.scheduling!.due)).toBeLessThanOrEqual(1); // not proven → short step
+    const r2 = review(r1.item, r1.concept, "2026-06-26", "got-it");
+    expect(r2.concept.provenDays).toBe(2); // now a proven foundation
+    expect(daysBetween("2026-06-26", r2.item.scheduling!.due)).toBeGreaterThan(1); // graduated → real spacing
   });
 });

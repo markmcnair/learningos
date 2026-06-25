@@ -7,7 +7,12 @@ import {
   useState,
   type ReactNode,
 } from "react";
-import { engine } from "../engine/realEngine";
+import {
+  engine,
+  FOUNDATION_PROVEN_DAYS,
+  isProvenFoundation,
+  unmetPrerequisites,
+} from "../engine/realEngine";
 import {
   APP_TODAY,
   SEED_CONCEPTS,
@@ -48,8 +53,22 @@ interface PersistState {
 const STORAGE_KEY = "learningos:v1";
 const STATE_VERSION = 3; // bumped for kid packs (Bible/Business/Missions/Money) + Selah/Caris profiles
 
-function seed(): PersistState {
+// Grandfather already-mastered concepts as proven foundations, so turning on
+// prerequisite gating never re-locks progress a learner already earned. Brand
+// new learning still has to prove its days the honest way (provenDays starts 0).
+function normalize(state: PersistState): PersistState {
   return {
+    ...state,
+    concepts: state.concepts.map((c) =>
+      c.provenDays == null
+        ? { ...c, provenDays: c.mastery === "solid" ? FOUNDATION_PROVEN_DAYS : 0 }
+        : c,
+    ),
+  };
+}
+
+function seed(): PersistState {
+  return normalize({
     version: STATE_VERSION,
     profiles: SEED_PROFILES,
     packs: SEED_PACKS,
@@ -59,7 +78,7 @@ function seed(): PersistState {
     reviews: [],
     currentProfileId: null,
     theme: "auto",
-  };
+  });
 }
 
 function load(): PersistState {
@@ -68,7 +87,7 @@ function load(): PersistState {
     if (!raw) return seed();
     const parsed = JSON.parse(raw) as PersistState;
     if (parsed.version !== STATE_VERSION) return seed();
-    return parsed;
+    return normalize(parsed);
   } catch {
     return seed();
   }
@@ -111,7 +130,9 @@ export interface AppApi {
   todaySession: Session | null;
   startTodaySession: () => void;
   startExtraSession: () => void; // "keep going" — pull the next batch of new concepts
-  hasMoreToLearn: boolean; // are there new concepts left beyond today's budget?
+  hasMoreToLearn: boolean; // unlocked new concepts are available right now
+  moreLockedAhead: boolean; // more concepts exist but are gated on foundations settling
+  lockedPrereqs: (conceptId: ID) => Concept[]; // unmet prerequisites of a concept
   viewItem: () => void; // advance a teaching card (no grade)
   gradeItem: (itemId: ID, grade: Grade, confidence: Confidence | null) => void;
   finishSession: (reflection: { text: string; skipped: boolean }) => void;
@@ -160,24 +181,46 @@ export function AppProvider({ children }: { children: ReactNode }) {
     return todays.find((s) => s.state !== "complete") ?? todays[todays.length - 1] ?? null;
   }, [state.sessions, currentProfile]);
 
-  const hasMoreToLearn = useMemo(() => {
-    // Kids keep a protective, finite session — no "keep going".
-    if (!currentProfile || currentProfile.readingLevel === "child") return false;
-    // Mirror the engine's concept-level "fresh" rule exactly, so the button only
-    // shows when an extra round could actually be built: a concept is teachable
-    // only if it has items and NONE of them has ever been scheduled. (Teaching
-    // cards never get a schedule, so a per-item test would never go false.)
+  const conceptsById = useMemo(
+    () => new Map(state.concepts.map((c) => [c.id, c])),
+    [state.concepts],
+  );
+
+  // What new ground is ahead, split by the prerequisite gate. A concept is
+  // "teachable" only if it has items, none ever scheduled (teaching cards never
+  // get a schedule, so a per-item test would never go false), and it isn't
+  // already mastered. Of those: UNLOCKED ones (prereqs are proven foundations)
+  // can be learned now; LOCKED ones are waiting on a foundation to set.
+  const learnAhead = useMemo(() => {
+    // Kids keep a protective, finite session — no "keep going", no gate UI.
+    if (!currentProfile || currentProfile.readingLevel === "child") {
+      return { unlocked: false, locked: false };
+    }
     const started = new Set(state.items.filter((i) => i.scheduling?.due).map((i) => i.conceptId));
     const withItems = new Set(state.items.map((i) => i.conceptId));
-    return state.concepts.some(
-      (c) =>
-        currentProfile.activePackIds.includes(c.packId) &&
-        c.status !== "pending" &&
-        c.mastery !== "solid" &&
-        withItems.has(c.id) &&
-        !started.has(c.id),
-    );
-  }, [currentProfile, state.concepts, state.items]);
+    let unlocked = false;
+    let locked = false;
+    for (const c of state.concepts) {
+      if (!currentProfile.activePackIds.includes(c.packId)) continue;
+      if (c.status === "pending" || c.mastery === "solid") continue;
+      if (!withItems.has(c.id) || started.has(c.id)) continue;
+      if (c.prerequisiteIds.every((p) => isProvenFoundation(conceptsById.get(p)))) unlocked = true;
+      else locked = true;
+    }
+    return { unlocked, locked };
+  }, [currentProfile, state.concepts, state.items, conceptsById]);
+  const hasMoreToLearn = learnAhead.unlocked;
+  const moreLockedAhead = learnAhead.locked;
+
+  // The unmet prerequisites of a concept — empty if it's unlocked. Drives the
+  // "🔒 unlocks after …" hints on the Progress map.
+  const lockedPrereqs = useCallback(
+    (conceptId: ID) => {
+      const c = conceptsById.get(conceptId);
+      return c ? unmetPrerequisites(c, conceptsById) : [];
+    },
+    [conceptsById],
+  );
 
   const packById = useCallback((id: ID) => state.packs.find((p) => p.id === id), [state.packs]);
   const itemById = useCallback((id: ID) => state.items.find((i) => i.id === id), [state.items]);
@@ -445,10 +488,13 @@ export function AppProvider({ children }: { children: ReactNode }) {
     if (!currentProfile) return [];
     return currentProfile.activePackIds.map((packId) => {
       const concepts = state.concepts.filter((c) => c.packId === packId && c.status !== "pending");
-      const solidIds = new Set(concepts.filter((c) => c.mastery === "solid").map((c) => c.id));
+      // The frontier: not-yet-solid concepts whose prerequisites are all proven
+      // foundations — exactly what the gate will let you start next.
       const nextUp = concepts
         .filter(
-          (c) => c.mastery !== "solid" && c.prerequisiteIds.every((p) => solidIds.has(p)),
+          (c) =>
+            c.mastery !== "solid" &&
+            c.prerequisiteIds.every((p) => isProvenFoundation(conceptsById.get(p))),
         )
         .map((c) => c.id);
       return {
@@ -519,6 +565,8 @@ export function AppProvider({ children }: { children: ReactNode }) {
     startTodaySession,
     startExtraSession,
     hasMoreToLearn,
+    moreLockedAhead,
+    lockedPrereqs,
     viewItem,
     gradeItem,
     finishSession,

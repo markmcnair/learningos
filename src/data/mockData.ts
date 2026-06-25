@@ -4,7 +4,10 @@ import type { Concept, Item, Pack, Profile } from "./types";
 // Adult pack (Trading Foundations) plus four first-grade-level kid courses whose
 // questions are objectively graded ("pick") so a child can't fake mastery.
 
-const TODAY = "2026-06-23";
+// Real "today" — a spaced-repetition app must run on a clock that actually
+// advances, or reviews never re-come-due and nothing can be proven over time.
+// Seed reviews are anchored to today so a returning learner has work waiting.
+const TODAY = new Date().toISOString().slice(0, 10);
 
 export const SEED_ITEMS: Item[] = [
   {

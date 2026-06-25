@@ -15,8 +15,15 @@ function SegBar({ solid, getting, fresh }: { solid: number; getting: number; fre
 }
 
 export function Progress() {
-  const { currentProfile, packById, conceptById, conceptsForPack, progressForCurrent, calibrationForCurrent } =
-    useApp();
+  const {
+    currentProfile,
+    packById,
+    conceptById,
+    conceptsForPack,
+    progressForCurrent,
+    calibrationForCurrent,
+    lockedPrereqs,
+  } = useApp();
   const profile = currentProfile!;
   const snapshots = progressForCurrent();
   const calibration = calibrationForCurrent();
@@ -58,12 +65,26 @@ export function Progress() {
               )}
 
               <div style={{ marginTop: "var(--s-5)", display: "flex", flexDirection: "column", gap: "var(--s-2)" }}>
-                {concepts.map((c) => (
-                  <div key={c.id} className={s.rowBetween}>
-                    <span style={{ fontSize: 15 }}>{c.title}</span>
-                    <MasteryPill signal={c.mastery} />
-                  </div>
-                ))}
+                {concepts.map((c) => {
+                  // Locked = not yet started, with prerequisites still unproven.
+                  const unmet = c.mastery === "new" ? lockedPrereqs(c.id) : [];
+                  const locked = unmet.length > 0;
+                  return (
+                    <div key={c.id} className={s.rowBetween}>
+                      <span className={locked ? s.faint : undefined} style={{ fontSize: 15 }}>
+                        {locked ? "🔒 " : ""}
+                        {c.title}
+                      </span>
+                      {locked ? (
+                        <span className={s.faint} style={{ fontSize: 12, textAlign: "right", maxWidth: "55%" }}>
+                          unlocks after {unmet.map((p) => p.title).join(", ")}
+                        </span>
+                      ) : (
+                        <MasteryPill signal={c.mastery} />
+                      )}
+                    </div>
+                  );
+                })}
               </div>
             </Card>
           );

@@ -1,4 +1,4 @@
-import type { Grade, Intensity, Item, MasterySignal } from "../data/types";
+import type { Concept, Grade, ID, Intensity, Item, MasterySignal } from "../data/types";
 import { bktUpdate, pFromSignal, signalFromP } from "./bkt";
 import { addDays, daysBetween } from "./dates";
 import { initCard, nextIntervalDays, reviewCard, type FsrsGrade } from "./fsrs";
@@ -23,6 +23,37 @@ const NEW_CONCEPTS_PER_DAY: Record<Intensity, number> = {
 // Safety valve: if you return after a long break, don't get buried — do the most
 // overdue reviews today, the rest stay due and surface tomorrow.
 const MAX_REVIEWS_PER_DAY = 40;
+
+// A prerequisite must be a PROVEN FOUNDATION before the concepts that depend on
+// it unlock: mastered (BKT solid) AND that mastery has survived spacing —
+// recalled correctly on at least this many distinct days. The second half is
+// what keeps this honest learning and not "cram three answers, unlock the next
+// thing": you can't open the next floor until the one below it has set.
+export const FOUNDATION_PROVEN_DAYS = 2;
+
+// Successive-relearning step (days). Newly-learned concepts revisit on roughly
+// this cadence until they're proven, so confirmation lands on the next visit
+// instead of after a long FSRS interval.
+const RELEARN_STEP_DAYS = 1;
+
+export function isProvenFoundation(c: Concept | undefined): boolean {
+  return !!c && c.mastery === "solid" && (c.provenDays ?? 0) >= FOUNDATION_PROVEN_DAYS;
+}
+
+// The prerequisites of `concept` that are NOT yet proven foundations — i.e. the
+// reasons it's still locked. Empty means it's unlocked and ready to learn.
+export function unmetPrerequisites(
+  concept: Concept,
+  byId: Map<ID, Concept>,
+): Concept[] {
+  return concept.prerequisiteIds
+    .map((id) => byId.get(id))
+    .filter((p): p is Concept => !!p && !isProvenFoundation(p));
+}
+
+export function prerequisitesMet(concept: Concept, byId: Map<ID, Concept>): boolean {
+  return concept.prerequisiteIds.every((id) => isProvenFoundation(byId.get(id)));
+}
 
 const GRADE_TO_FSRS: Record<Grade, FsrsGrade> = {
   missed: 1,
@@ -101,9 +132,19 @@ export const engine: LearningEngine = {
     const startedConceptIds = new Set(
       inScope.filter((i) => i.scheduling?.due).map((i) => i.conceptId),
     );
-    const freshConceptIds = conceptOrder.filter(
-      (cid) => !startedConceptIds.has(cid) && masteryById.get(cid) !== "solid",
-    );
+    // PREREQUISITE GATE: a brand-new concept is only introduced once every one
+    // of its prerequisites is a proven foundation (mastered AND survived a day's
+    // spacing). You never build on a foundation you haven't shown actually holds.
+    const byId = new Map(concepts.map((c) => [c.id, c]));
+    const freshConceptIds = conceptOrder.filter((cid) => {
+      const c = byId.get(cid);
+      return (
+        !!c &&
+        !startedConceptIds.has(cid) &&
+        masteryById.get(cid) !== "solid" &&
+        prerequisitesMet(c, byId)
+      );
+    });
     const budget = NEW_CONCEPTS_PER_DAY[profile.intensity];
     const introduce: Item[] = [];
     for (const cid of freshConceptIds.slice(0, budget)) {
@@ -131,7 +172,30 @@ export const engine: LearningEngine = {
           )
         : initCard(g);
 
-    const interval = nextIntervalDays(fsrsState.stability, retention);
+    const correct = isCorrect(grade);
+    const prevP = concept.bktP ?? pFromSignal(concept.mastery);
+    const nextP = bktUpdate(prevP, correct);
+    // Count a NEW proven day only when this is the first correct recall today —
+    // so a single session's repeats can't fake durability. A lapse breaks the
+    // streak (the foundation didn't hold), resetting the count.
+    const countsNewDay = correct && concept.lastProvenDay !== date;
+    const newConcept: Concept = {
+      ...concept,
+      bktP: nextP,
+      mastery: signalFromP(nextP),
+      relearnReps: correct ? (concept.relearnReps ?? 0) + 1 : 0,
+      provenDays: correct ? (concept.provenDays ?? 0) + (countsNewDay ? 1 : 0) : 0,
+      lastProvenDay: correct ? date : undefined,
+    };
+
+    // Successive relearning: until a concept is a proven foundation, keep its
+    // items on a short ~1-day step so they come back on the learner's NEXT
+    // visit and durability gets confirmed at their own cadence — not after a
+    // long FSRS gap (which would strand a daily learner with a locked next
+    // concept and empty days). Once proven, graduate to full FSRS spacing.
+    const fsrsInterval = nextIntervalDays(fsrsState.stability, retention);
+    const proven = (newConcept.provenDays ?? 0) >= FOUNDATION_PROVEN_DAYS;
+    const interval = correct && !proven ? Math.min(fsrsInterval, RELEARN_STEP_DAYS) : fsrsInterval;
     const newItem: Item = {
       ...item,
       scheduling: {
@@ -143,15 +207,6 @@ export const engine: LearningEngine = {
         lapses: (sched?.lapses ?? 0) + (grade === "missed" ? 1 : 0),
         learningState: grade === "missed" ? "relearning" : "review",
       },
-    };
-
-    const prevP = concept.bktP ?? pFromSignal(concept.mastery);
-    const nextP = bktUpdate(prevP, isCorrect(grade));
-    const newConcept = {
-      ...concept,
-      bktP: nextP,
-      mastery: signalFromP(nextP),
-      relearnReps: isCorrect(grade) ? (concept.relearnReps ?? 0) + 1 : 0,
     };
 
     return { item: newItem, concept: newConcept };

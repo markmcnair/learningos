@@ -12,7 +12,7 @@ function greeting(name: string): string {
 }
 
 export function Today() {
-  const { currentProfile, todaySession, concepts, items, startExtraSession, hasMoreToLearn } =
+  const { currentProfile, todaySession, concepts, items, startExtraSession, hasMoreToLearn, moreLockedAhead } =
     useApp();
   const navigate = useNavigate();
   const profile = currentProfile!;
@@ -39,6 +39,15 @@ export function Today() {
   const minutes = todaySession ? todaySession.estMinutes : preview.estMinutes;
   const nothingDue = !todaySession && count === 0;
 
+  // "Settling": there's more to learn, but it's gated behind foundations that
+  // need a day to prove they stuck. The honest TRUE-learning pause, not a wall.
+  const settling = !hasMoreToLearn && moreLockedAhead;
+  const caughtUpBody = hasMoreToLearn
+    ? "Nothing is due right now — but there's new ground whenever you want it."
+    : settling
+      ? "The next ideas unlock as what you've learned proves it stuck. Come back tomorrow — that day's rest is doing real work."
+      : "Nothing is due right now. Rest is part of how memory sticks — see you tomorrow.";
+
   return (
     <>
       <header className={s.header}>
@@ -60,13 +69,12 @@ export function Today() {
               <Icon name="check" size={30} strokeWidth={2} />
             </span>
             <h2>{done ? "Done for today." : "You're all caught up."}</h2>
-            <p className={s.muted}>
-              {done
-                ? todaySession?.summary?.headline ?? "Nicely done."
-                : hasMoreToLearn
-                  ? "Nothing is due right now — but there's new ground whenever you want it."
-                  : "Nothing is due right now. Rest is part of how memory sticks — see you tomorrow."}
-            </p>
+            <p className={s.muted}>{done ? todaySession?.summary?.headline ?? "Nicely done." : caughtUpBody}</p>
+            {done && settling && (
+              <p className={s.faint} style={{ fontSize: 14, marginTop: "calc(-1 * var(--s-2))" }}>
+                The next ideas unlock as today's foundations settle — see you tomorrow.
+              </p>
+            )}
             <div
               style={{
                 marginTop: "var(--s-2)",
