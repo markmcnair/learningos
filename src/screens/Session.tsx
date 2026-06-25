@@ -404,6 +404,8 @@ export function Session() {
     itemById,
     conceptById,
     startTodaySession,
+    startExtraSession,
+    hasMoreToLearn,
     viewItem,
     gradeItem,
     finishSession,
@@ -412,21 +414,22 @@ export function Session() {
 
   const child = currentProfile?.readingLevel === "child";
   const aiActive = !!currentProfile?.aiEnabled && hasKey();
+  const isExtra = todaySession?.kind === "extra";
 
   useEffect(() => {
     startTodaySession();
   }, [startTodaySession]);
 
-  // Kids skip the typed brain-dump — finish straight away.
+  // Kids and "keep going" rounds skip the typed brain-dump — finish straight away.
   useEffect(() => {
-    if (!child || !todaySession) return;
+    if (!todaySession || !(child || isExtra)) return;
     if (
       todaySession.state !== "complete" &&
       todaySession.currentIndex >= todaySession.itemIds.length
     ) {
       finishSession({ text: "", skipped: true });
     }
-  }, [child, todaySession, finishSession]);
+  }, [child, isExtra, todaySession, finishSession]);
 
   useEffect(() => () => stopSpeaking(), []);
 
@@ -539,11 +542,25 @@ export function Session() {
               <span className={s.doneCheck}>
                 <Icon name="check" size={40} strokeWidth={2} />
               </span>
-              <h1>Done for today.</h1>
+              <h1>{isExtra ? "Another round done." : "Done for today."}</h1>
               <p className={sc.muted}>{summary?.headline}</p>
               <Streak days={summary?.newStreakDays ?? 0} />
-              <div style={{ marginTop: "var(--s-4)" }}>
-                <Button size="lg" onClick={leave}>
+              <div
+                style={{
+                  marginTop: "var(--s-4)",
+                  display: "flex",
+                  flexDirection: "column",
+                  gap: "var(--s-3)",
+                  alignItems: "center",
+                }}
+              >
+                {hasMoreToLearn && (
+                  <Button size="lg" onClick={startExtraSession}>
+                    Keep going
+                    <Icon name="arrow-right" size={20} />
+                  </Button>
+                )}
+                <Button size="lg" variant={hasMoreToLearn ? "secondary" : "primary"} onClick={leave}>
                   Back home
                 </Button>
               </div>

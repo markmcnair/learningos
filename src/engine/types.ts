@@ -19,6 +19,10 @@ export interface BuildSessionInput {
   concepts: Concept[]; // all concepts for the profile's active packs
   items: Item[]; // all items for those concepts
   date: ISODate;
+  // "daily" = due reviews + the day's new-concept budget (intensity-sized).
+  // "extra" = a learner-pulled "keep going" round: only the next new concepts,
+  // no reviews. Defaults to "daily".
+  mode?: "daily" | "extra";
 }
 
 export interface PlannedSession {

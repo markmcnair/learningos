@@ -110,6 +110,8 @@ export interface AppApi {
   // the daily loop
   todaySession: Session | null;
   startTodaySession: () => void;
+  startExtraSession: () => void; // "keep going" — pull the next batch of new concepts
+  hasMoreToLearn: boolean; // are there new concepts left beyond today's budget?
   viewItem: () => void; // advance a teaching card (no grade)
   gradeItem: (itemId: ID, grade: Grade, confidence: Confidence | null) => void;
   finishSession: (reflection: { text: string; skipped: boolean }) => void;
@@ -150,10 +152,32 @@ export function AppProvider({ children }: { children: ReactNode }) {
 
   const todaySession = useMemo(() => {
     if (!currentProfile) return null;
-    return (
-      state.sessions.find((s) => s.profileId === currentProfile.id && s.date === APP_TODAY) ?? null
+    const todays = state.sessions.filter(
+      (s) => s.profileId === currentProfile.id && s.date === APP_TODAY,
     );
+    // The round you're actively in (not finished) wins; otherwise the most
+    // recent one — so the "done" screen of whatever you last did is what shows.
+    return todays.find((s) => s.state !== "complete") ?? todays[todays.length - 1] ?? null;
   }, [state.sessions, currentProfile]);
+
+  const hasMoreToLearn = useMemo(() => {
+    // Kids keep a protective, finite session — no "keep going".
+    if (!currentProfile || currentProfile.readingLevel === "child") return false;
+    // Mirror the engine's concept-level "fresh" rule exactly, so the button only
+    // shows when an extra round could actually be built: a concept is teachable
+    // only if it has items and NONE of them has ever been scheduled. (Teaching
+    // cards never get a schedule, so a per-item test would never go false.)
+    const started = new Set(state.items.filter((i) => i.scheduling?.due).map((i) => i.conceptId));
+    const withItems = new Set(state.items.map((i) => i.conceptId));
+    return state.concepts.some(
+      (c) =>
+        currentProfile.activePackIds.includes(c.packId) &&
+        c.status !== "pending" &&
+        c.mastery !== "solid" &&
+        withItems.has(c.id) &&
+        !started.has(c.id),
+    );
+  }, [currentProfile, state.concepts, state.items]);
 
   const packById = useCallback((id: ID) => state.packs.find((p) => p.id === id), [state.packs]);
   const itemById = useCallback((id: ID) => state.items.find((i) => i.id === id), [state.items]);
@@ -247,15 +271,16 @@ export function AppProvider({ children }: { children: ReactNode }) {
     setState((s) => {
       const profile = s.profiles.find((p) => p.id === s.currentProfileId);
       if (!profile) return s;
-      const existing = s.sessions.find(
-        (x) => x.profileId === profile.id && x.date === APP_TODAY,
+      // The one paced session a day (ignore any "extra" rounds when resuming).
+      const daily = s.sessions.find(
+        (x) => x.profileId === profile.id && x.date === APP_TODAY && x.kind !== "extra",
       );
-      if (existing) {
-        if (existing.state === "ready") {
+      if (daily) {
+        if (daily.state === "ready") {
           return {
             ...s,
             sessions: s.sessions.map((x) =>
-              x.id === existing.id ? { ...x, state: "in-progress" } : x,
+              x.id === daily.id ? { ...x, state: "in-progress" } : x,
             ),
           };
         }
@@ -275,6 +300,43 @@ export function AppProvider({ children }: { children: ReactNode }) {
         profileId: profile.id,
         date: APP_TODAY,
         state: "in-progress",
+        kind: "daily",
+        itemIds: planned.itemIds,
+        currentIndex: 0,
+        estMinutes: planned.estMinutes,
+      };
+      return { ...s, sessions: [...s.sessions, session] };
+    });
+  }, []);
+
+  // "Keep going": an on-demand round of the NEXT new concepts beyond the day's
+  // budget. Reviews are already handled by the daily session, so this is pure
+  // new ground. Adults only — kids keep the finite session.
+  const startExtraSession = useCallback(() => {
+    setState((s) => {
+      const profile = s.profiles.find((p) => p.id === s.currentProfileId);
+      if (!profile) return s;
+      // Never stack rounds: if anything today is unfinished, stay in it.
+      const unfinished = s.sessions.find(
+        (x) => x.profileId === profile.id && x.date === APP_TODAY && x.state !== "complete",
+      );
+      if (unfinished) return s;
+      const liveConcepts = s.concepts.filter((c) => c.status !== "pending");
+      const liveIds = new Set(liveConcepts.map((c) => c.id));
+      const planned = engine.buildTodaySession({
+        profile,
+        concepts: liveConcepts,
+        items: s.items.filter((i) => liveIds.has(i.conceptId)),
+        date: APP_TODAY,
+        mode: "extra",
+      });
+      if (planned.itemIds.length === 0) return s; // nothing new left to teach
+      const session: Session = {
+        id: crypto.randomUUID(),
+        profileId: profile.id,
+        date: APP_TODAY,
+        state: "in-progress",
+        kind: "extra",
         itemIds: planned.itemIds,
         currentIndex: 0,
         estMinutes: planned.estMinutes,
@@ -299,7 +361,8 @@ export function AppProvider({ children }: { children: ReactNode }) {
       setState((s) => {
         const profile = s.profiles.find((p) => p.id === s.currentProfileId);
         const session = s.sessions.find(
-          (x) => x.profileId === s.currentProfileId && x.date === APP_TODAY,
+          (x) =>
+            x.profileId === s.currentProfileId && x.date === APP_TODAY && x.state !== "complete",
         );
         if (!profile || !session) return s;
         const item = s.items.find((i) => i.id === itemId);
@@ -343,7 +406,8 @@ export function AppProvider({ children }: { children: ReactNode }) {
     setState((s) => {
       const profile = s.profiles.find((p) => p.id === s.currentProfileId);
       const session = s.sessions.find(
-        (x) => x.profileId === s.currentProfileId && x.date === APP_TODAY,
+        (x) =>
+          x.profileId === s.currentProfileId && x.date === APP_TODAY && x.state !== "complete",
       );
       if (!profile || !session) return s;
       const sessionReviews = s.reviews.filter((r) => r.sessionId === session.id);
@@ -453,6 +517,8 @@ export function AppProvider({ children }: { children: ReactNode }) {
     addPackToProfile,
     todaySession,
     startTodaySession,
+    startExtraSession,
+    hasMoreToLearn,
     viewItem,
     gradeItem,
     finishSession,

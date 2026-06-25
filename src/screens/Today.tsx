@@ -1,5 +1,5 @@
-import { Link } from "react-router-dom";
-import { Avatar, ButtonLink, Card, Icon, Streak } from "../components/ui";
+import { Link, useNavigate } from "react-router-dom";
+import { Avatar, Button, ButtonLink, Card, Icon, Streak } from "../components/ui";
 import { APP_TODAY } from "../data/mockData";
 import { useApp } from "../data/store";
 import { engine } from "../engine/realEngine";
@@ -12,15 +12,25 @@ function greeting(name: string): string {
 }
 
 export function Today() {
-  const { currentProfile, todaySession, concepts, items } = useApp();
+  const { currentProfile, todaySession, concepts, items, startExtraSession, hasMoreToLearn } =
+    useApp();
+  const navigate = useNavigate();
   const profile = currentProfile!;
 
+  // Mirror the session builder: pending (un-approved AI) concepts never count.
+  const liveConcepts = concepts.filter((c) => c.status !== "pending");
+  const liveIds = new Set(liveConcepts.map((c) => c.id));
   const preview = engine.buildTodaySession({
     profile,
-    concepts,
-    items,
+    concepts: liveConcepts,
+    items: items.filter((i) => liveIds.has(i.conceptId)),
     date: APP_TODAY,
   });
+
+  function keepGoing() {
+    startExtraSession();
+    navigate("/session");
+  }
 
   const done = todaySession?.state === "complete";
   const inProgress =
@@ -53,9 +63,25 @@ export function Today() {
             <p className={s.muted}>
               {done
                 ? todaySession?.summary?.headline ?? "Nicely done."
-                : "Nothing is due right now. Rest is part of how memory sticks — see you tomorrow."}
+                : hasMoreToLearn
+                  ? "Nothing is due right now — but there's new ground whenever you want it."
+                  : "Nothing is due right now. Rest is part of how memory sticks — see you tomorrow."}
             </p>
-            <div style={{ marginTop: "var(--s-2)" }}>
+            <div
+              style={{
+                marginTop: "var(--s-2)",
+                display: "flex",
+                flexDirection: "column",
+                gap: "var(--s-3)",
+                alignItems: "flex-start",
+              }}
+            >
+              {hasMoreToLearn && (
+                <Button size="md" onClick={keepGoing}>
+                  Keep going
+                  <Icon name="arrow-right" size={18} />
+                </Button>
+              )}
               <ButtonLink to="/progress" variant="secondary" size="md">
                 See your map
               </ButtonLink>

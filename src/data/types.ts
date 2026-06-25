@@ -116,9 +116,12 @@ export interface Session {
   profileId: ID;
   date: ISODate;
   state: SessionState;
+  // "daily" is the one paced session a day; "extra" is a learner-pulled
+  // "keep going" round of new material beyond the day's budget.
+  kind?: "daily" | "extra";
   itemIds: ID[]; // ordered path the engine chose for today
   currentIndex: number; // position-in-session for the quiet progress bar
-  estMinutes: number; // 10–20, shown as a soft promise
+  estMinutes: number; // soft promise; scales with how much you take on
   reflection?: Reflection;
   summary?: SessionSummary;
 }

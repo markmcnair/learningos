@@ -17,9 +17,9 @@ import s from "./screens.module.css";
 import t from "./Settings.module.css";
 
 const INTENSITY: { value: Intensity; label: string; helper: string }[] = [
-  { value: "gentle", label: "Gentle", helper: "Fewer reviews, lighter days. Lovely for kids or busy stretches." },
-  { value: "steady", label: "Steady", helper: "The balanced default — strong memory without overload." },
-  { value: "intense", label: "Intense", helper: "More reviews, for when something really has to stick." },
+  { value: "gentle", label: "Gentle", helper: "About 3 new ideas a day and lighter reviews. Lovely for kids or busy stretches." },
+  { value: "steady", label: "Steady", helper: "The balanced default — about 6 new ideas a day, strong memory without overload." },
+  { value: "intense", label: "Intense", helper: "About 10 new ideas a day and tighter reviews, for when you want to move fast. You can always tap “Keep going” for more." },
 ];
 
 const THEMES: { value: ThemePref; label: string }[] = [

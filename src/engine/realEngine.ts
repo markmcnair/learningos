@@ -10,7 +10,19 @@ import type {
   SummarizeInput,
 } from "./types";
 
-const MAX_ITEMS = 12;
+// How many BRAND-NEW concepts to introduce in a day, by intensity. This is the
+// "pace" dial: it controls how fast you take on new material. Due reviews are
+// separate and always honored — the spacing science decides those, not you.
+// A "keep going" round pulls another batch this size, on demand.
+const NEW_CONCEPTS_PER_DAY: Record<Intensity, number> = {
+  gentle: 3,
+  steady: 6,
+  intense: 10,
+};
+
+// Safety valve: if you return after a long break, don't get buried — do the most
+// overdue reviews today, the rest stay due and surface tomorrow.
+const MAX_REVIEWS_PER_DAY = 40;
 
 const GRADE_TO_FSRS: Record<Grade, FsrsGrade> = {
   missed: 1,
@@ -56,7 +68,7 @@ export const engine: LearningEngine = {
     return RETENTION[intensity];
   },
 
-  buildTodaySession({ profile, concepts, items, date }: BuildSessionInput): PlannedSession {
+  buildTodaySession({ profile, concepts, items, date, mode = "daily" }: BuildSessionInput): PlannedSession {
     const activeConceptIds = new Set(
       concepts.filter((c) => profile.activePackIds.includes(c.packId)).map((c) => c.id),
     );
@@ -64,28 +76,45 @@ export const engine: LearningEngine = {
     const inScope = items.filter((i) => activeConceptIds.has(i.conceptId));
 
     // Due reviews interleave (discrimination among confusable, already-encoded
-    // ideas) — the spaced-repetition heartbeat.
-    const due = interleaveByConcept(inScope.filter((i) => i.scheduling?.due && i.scheduling.due <= date));
+    // ideas) — the spaced-repetition heartbeat. An "extra" round skips them; the
+    // daily session already cleared them and you're here for new ground.
+    const due =
+      mode === "extra"
+        ? []
+        : interleaveByConcept(
+            inScope.filter((i) => i.scheduling?.due && i.scheduling.due <= date),
+          ).slice(0, MAX_REVIEWS_PER_DAY);
 
     // Brand-new concepts are taught BLOCKED, concept by concept (teach → its
     // questions → next concept), never scattered — the science says hold off on
     // interleaving until a schema forms. Teaching items come before practice.
+    // We take whole concepts up to the day's budget, so the pace is measured in
+    // ideas, not loose questions.
+    //
+    // "Fresh" is judged per CONCEPT, not per item: a concept is new only if NONE
+    // of its items has ever been scheduled. (Teaching cards advance without a
+    // schedule, so a per-item test would let an already-taught concept's lesson
+    // leak back in — and a "keep going" round would re-teach what you just did.)
     const typeRank = (t: Item["type"]) =>
       t === "concept-explanation" || t === "worked-example" ? 0 : t === "cloze" ? 1 : 2;
     const conceptOrder = concepts.filter((c) => activeConceptIds.has(c.id)).map((c) => c.id);
-    const introducePool = inScope.filter(
-      (i) => !i.scheduling?.due && masteryById.get(i.conceptId) !== "solid",
+    const startedConceptIds = new Set(
+      inScope.filter((i) => i.scheduling?.due).map((i) => i.conceptId),
     );
+    const freshConceptIds = conceptOrder.filter(
+      (cid) => !startedConceptIds.has(cid) && masteryById.get(cid) !== "solid",
+    );
+    const budget = NEW_CONCEPTS_PER_DAY[profile.intensity];
     const introduce: Item[] = [];
-    for (const cid of conceptOrder) {
-      const forConcept = introducePool
+    for (const cid of freshConceptIds.slice(0, budget)) {
+      const forConcept = inScope
         .filter((i) => i.conceptId === cid)
         .sort((a, b) => typeRank(a.type) - typeRank(b.type));
       introduce.push(...forConcept);
     }
 
-    const planned = [...due, ...introduce].slice(0, MAX_ITEMS);
-    const estMinutes = Math.min(20, Math.max(10, Math.round(planned.length * 1.4)));
+    const planned = [...due, ...introduce];
+    const estMinutes = Math.max(5, Math.round(planned.length * 1.3));
     return { itemIds: planned.map((i) => i.id), estMinutes };
   },
 

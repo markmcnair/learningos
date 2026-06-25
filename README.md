@@ -45,9 +45,12 @@ Built in the open, in phases:
 | 7 | Kid mode (objective tap-to-answer + read-aloud) + 4 kid courses | done |
 | 8 | "How it works" showcase dashboard (iceberg, live stats, graph) | done |
 | 9 | AI course growth — generate new concepts, verify, owner-approve | done |
-| 10 | Prerequisite-gated unlocking, per-user FSRS tuning | next |
+| 10 | Adjustable pace — intensity sets daily new-concept volume + "Keep going" | done |
+| 11 | Prerequisite-gated unlocking, per-user FSRS tuning | next |
 
 **Growing a course** (`/grow`, from Settings): with AI on, the system proposes a brand-new concept that builds on what's mastered, then an independent **verification pass** adversarially checks it (recomputes finance numbers; checks reading level + theology for kid packs). Nothing reaches a learner until the **owner approves** it — so a child never sees AI-generated content a parent hasn't signed off on. The generation/verification prompts are red-teamed (`src/ai/genPrompts.ts`).
+
+**Your pace, your call.** The intensity dial (Gentle / Steady / Intense) now sets how many brand-new concepts you take on each day — roughly 3 / 6 / 10 — not just the retention target. Whole concepts are taught together (lesson → its questions) so the pace is measured in *ideas*, not loose cards. Finished today's set and want more? **Keep going** pulls the next batch of new concepts on demand, as many rounds as you like — while due reviews stay FSRS-scheduled, because the spacing science decides those, not you. Kid profiles keep a single, protective, finite session.
 
 The kid path (for `child` profiles) swaps self-rating for **objectively graded tap-the-answer questions** (so a child can't fake mastery), reads every card aloud, and uses a first-grade-level UI. A **System dashboard** (`/system`, reachable from Settings) shows the whole iceberg, live counts, the FSRS spacing curve, and the live knowledge graph — built to demo the system to someone.
 
