@@ -194,6 +194,40 @@ describe("buildTodaySession — prerequisite gate", () => {
     const ids = plan([ROOT({ mastery: "getting-it", provenDays: 9 }), DEP]).itemIds;
     expect(ids).not.toContain("dep-q");
   });
+
+  it('"Keep going" (extra) pushes onto a MASTERED-but-not-yet-proven prerequisite that the daily session holds back', () => {
+    // root is solid but only 1 proven day → a proven foundation needs 2.
+    const concepts = [ROOT({ provenDays: 1 }), DEP];
+    const items = [...ROOT_ITEMS, ...DEP_ITEMS];
+    const daily = engine.buildTodaySession({
+      profile: profile("steady"),
+      concepts,
+      items,
+      date: "2026-06-25",
+    });
+    const extra = engine.buildTodaySession({
+      profile: profile("steady"),
+      concepts,
+      items,
+      date: "2026-06-25",
+      mode: "extra",
+    });
+    expect(daily.itemIds).not.toContain("dep-q"); // strict daily holds it back
+    expect(extra.itemIds).toContain("dep-q"); // Keep going pushes onto the mastered prereq
+  });
+
+  it("a child's extra round stays strict (no push onto unproven foundations)", () => {
+    const kid: Profile = { ...profile("gentle"), readingLevel: "child" };
+    const concepts = [ROOT({ provenDays: 1 }), DEP];
+    const extra = engine.buildTodaySession({
+      profile: kid,
+      concepts,
+      items: [...ROOT_ITEMS, ...DEP_ITEMS],
+      date: "2026-06-25",
+      mode: "extra",
+    });
+    expect(extra.itemIds).not.toContain("dep-q");
+  });
 });
 
 describe("applyReview — successive relearning across days", () => {

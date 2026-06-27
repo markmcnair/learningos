@@ -40,18 +40,27 @@ export function isProvenFoundation(c: Concept | undefined): boolean {
   return !!c && c.mastery === "solid" && (c.provenDays ?? 0) >= FOUNDATION_PROVEN_DAYS;
 }
 
-// The prerequisites of `concept` that are NOT yet proven foundations — i.e. the
-// reasons it's still locked. Empty means it's unlocked and ready to learn.
+// The relaxed bar used by "Keep going": a prerequisite need only be MASTERED
+// (BKT solid), not yet proven across two days. The daily session still waits for
+// the full proof (isProvenFoundation); the learner can opt to push the frontier
+// ahead onto a foundation they've genuinely mastered but not yet let settle.
+export function isMastered(c: Concept | undefined): boolean {
+  return !!c && c.mastery === "solid";
+}
+
+// The prerequisites of `concept` that don't yet meet the bar — i.e. the reasons
+// it's still locked. Empty means it's reachable. `relaxed` picks the bar: the
+// strict proven-foundation gate (daily) or the mastered gate (Keep going / the
+// availability UI). Includes a placeholder for a stale/missing id so the
+// "🔒 unlocks after …" hint is never silently empty.
 export function unmetPrerequisites(
   concept: Concept,
   byId: Map<ID, Concept>,
+  relaxed = false,
 ): Concept[] {
-  // Surface EVERY prerequisite that isn't a proven foundation — including one
-  // whose id no longer resolves to a concept (a stale/removed reference). The
-  // gate (prerequisitesMet) treats a missing id as unmet and locks; this must
-  // stay in lockstep so the "🔒 unlocks after …" hint is never silently empty.
+  const meets = relaxed ? isMastered : isProvenFoundation;
   return concept.prerequisiteIds
-    .filter((id) => !isProvenFoundation(byId.get(id)))
+    .filter((id) => !meets(byId.get(id)))
     .map(
       (id): Concept =>
         byId.get(id) ?? {
@@ -65,8 +74,13 @@ export function unmetPrerequisites(
     );
 }
 
-export function prerequisitesMet(concept: Concept, byId: Map<ID, Concept>): boolean {
-  return concept.prerequisiteIds.every((id) => isProvenFoundation(byId.get(id)));
+export function prerequisitesMet(
+  concept: Concept,
+  byId: Map<ID, Concept>,
+  relaxed = false,
+): boolean {
+  const meets = relaxed ? isMastered : isProvenFoundation;
+  return concept.prerequisiteIds.every((id) => meets(byId.get(id)));
 }
 
 const GRADE_TO_FSRS: Record<Grade, FsrsGrade> = {
@@ -146,9 +160,13 @@ export const engine: LearningEngine = {
     const startedConceptIds = new Set(
       inScope.filter((i) => i.scheduling?.due).map((i) => i.conceptId),
     );
-    // PREREQUISITE GATE: a brand-new concept is only introduced once every one
-    // of its prerequisites is a proven foundation (mastered AND survived a day's
-    // spacing). You never build on a foundation you haven't shown actually holds.
+    // PREREQUISITE GATE. The daily session is STRICT: a brand-new concept is
+    // only introduced once every prerequisite is a proven foundation (mastered
+    // AND survived a day's spacing) — you never auto-build on a foundation you
+    // haven't shown holds. A "Keep going" (extra) round for an adult RELAXES to
+    // mastered-is-enough, so an eager learner can push the frontier ahead onto a
+    // prerequisite they've solidified before its 2-day proof. Kids stay strict.
+    const relaxed = mode === "extra" && profile.readingLevel !== "child";
     const byId = new Map(concepts.map((c) => [c.id, c]));
     const freshConceptIds = conceptOrder.filter((cid) => {
       const c = byId.get(cid);
@@ -156,7 +174,7 @@ export const engine: LearningEngine = {
         !!c &&
         !startedConceptIds.has(cid) &&
         masteryById.get(cid) !== "solid" &&
-        prerequisitesMet(c, byId)
+        prerequisitesMet(c, byId, relaxed)
       );
     });
     const budget = NEW_CONCEPTS_PER_DAY[profile.intensity];

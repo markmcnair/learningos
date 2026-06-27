@@ -11,7 +11,7 @@ import { daysBetween } from "../engine/dates";
 import {
   engine,
   FOUNDATION_PROVEN_DAYS,
-  isProvenFoundation,
+  isMastered,
   unmetPrerequisites,
 } from "../engine/realEngine";
 import {
@@ -195,11 +195,13 @@ export function AppProvider({ children }: { children: ReactNode }) {
     [state.concepts],
   );
 
-  // What new ground is ahead, split by the prerequisite gate. A concept is
+  // What new ground is ahead, for the "Keep going" affordance. A concept is
   // "teachable" only if it has items, none ever scheduled (teaching cards never
   // get a schedule, so a per-item test would never go false), and it isn't
-  // already mastered. Of those: UNLOCKED ones (prereqs are proven foundations)
-  // can be learned now; LOCKED ones are waiting on a foundation to set.
+  // already mastered. Of those, the PUSH bar (prereqs MASTERED) decides:
+  // UNLOCKED ones Keep going can pull now; LOCKED ones are waiting on a
+  // prerequisite to even be mastered. (The daily session is stricter — it waits
+  // for the 2-day proof — but Keep going lets an adult push onto solid ground.)
   const learnAhead = useMemo(() => {
     // Kids keep a protective, finite session — no "keep going", no gate UI.
     if (!currentProfile || currentProfile.readingLevel === "child") {
@@ -213,7 +215,7 @@ export function AppProvider({ children }: { children: ReactNode }) {
       if (!currentProfile.activePackIds.includes(c.packId)) continue;
       if (c.status === "pending" || c.mastery === "solid") continue;
       if (!withItems.has(c.id) || started.has(c.id)) continue;
-      if (c.prerequisiteIds.every((p) => isProvenFoundation(conceptsById.get(p)))) unlocked = true;
+      if (c.prerequisiteIds.every((p) => isMastered(conceptsById.get(p)))) unlocked = true;
       else locked = true;
     }
     return { unlocked, locked };
@@ -226,7 +228,10 @@ export function AppProvider({ children }: { children: ReactNode }) {
   const lockedPrereqs = useCallback(
     (conceptId: ID) => {
       const c = conceptsById.get(conceptId);
-      return c ? unmetPrerequisites(c, conceptsById) : [];
+      // Relaxed bar: a concept is only "locked" (🔒) if a prerequisite isn't even
+      // mastered. One that's mastered-but-not-yet-proven is reachable via Keep
+      // going, so it shouldn't read as locked.
+      return c ? unmetPrerequisites(c, conceptsById, true) : [];
     },
     [conceptsById],
   );
@@ -511,15 +516,15 @@ export function AppProvider({ children }: { children: ReactNode }) {
     return currentProfile.activePackIds.map((packId) => {
       const concepts = state.concepts.filter((c) => c.packId === packId && c.status !== "pending");
       // The frontier: brand-new (not yet started, not solid) concepts whose
-      // prerequisites are all proven foundations — exactly what the gate will
-      // introduce next. Mirrors the engine's freshConceptIds, so "Up next"
-      // never lists a concept you're already mid-way through.
+      // prerequisites are all mastered — i.e. reachable now (the daily session
+      // when proven, "Keep going" the moment they're solid). Never lists a
+      // concept you're already mid-way through.
       const nextUp = concepts
         .filter(
           (c) =>
             c.mastery !== "solid" &&
             !started.has(c.id) &&
-            c.prerequisiteIds.every((p) => isProvenFoundation(conceptsById.get(p))),
+            c.prerequisiteIds.every((p) => isMastered(conceptsById.get(p))),
         )
         .map((c) => c.id);
       return {
